@@ -1,56 +1,45 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { colors } from '../theme/colors';
 
-interface CustomButtonProps {
-  title: string;
-  onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'danger' | 'outline';
-  loading?: boolean;
-  disabled?: boolean;
-}
-
-export const CustomButton: React.FC<CustomButtonProps> = ({ 
-  title, 
-  onPress, 
-  variant = 'primary', 
-  loading = false,
-  disabled = false
-}) => {
-  const isPrimary = variant === 'primary';
-  const isSecondary = variant === 'secondary';
-  const isDanger = variant === 'danger';
+export const CustomButton = ({ title, onPress, variant = 'primary', loading, disabled }: any) => {
+  // Expo အတွက် အရေးကြီးဆုံးအပိုင်း - အတင်း Boolean ပြောင်းတာပါ
+  const isLoading = loading === true; 
+  const isDisabled = disabled === true;
   const isOutline = variant === 'outline';
 
   const getBackgroundColor = () => {
-    if (disabled === true || loading === true) return '#cbd5e1';
-    if (isPrimary) return colors.primary;
-    if (isSecondary) return colors.secondary;
-    if (isDanger) return colors.danger;
-    return 'transparent';
-  };
+  if (isDisabled || isLoading) return '#cbd5e1';
+  if (variant === 'primary') return colors.primary;
+  if (variant === 'secondary') return colors.secondary;
+  if (variant === 'danger') return colors.danger;
+  // 'transparent' အစား ကာလာကုဒ် အသေ သုံးပါ
+  return 'rgba(0,0,0,0)'; 
+};
+
 
   const getTextColor = () => {
-    if (disabled === true || loading === true) return '#94a3b8';
-    if (isOutline) return colors.primary;
-    return '#ffffff';
-  };
-
-  const buttonStyle: ViewStyle = {
-    ...styles.button,
-    backgroundColor: getBackgroundColor(),
-    borderWidth: isOutline ? 1 : 0,
-    borderColor: isOutline ? colors.primary : 'transparent',
+    if (isDisabled || isLoading) return '#94a3b8';
+    return isOutline ? colors.primary : '#ffffff';
   };
 
   return (
     <TouchableOpacity 
-      style={buttonStyle} 
       onPress={onPress}
-      disabled={loading === true || disabled === true} 
+      // ဤနေရာတွင် logic ကို အသေအချာ boolean ဖြစ်အောင်လုပ်ပါ
+      disabled={isLoading || isDisabled} 
+      style={[
+        styles.button, 
+        { 
+          backgroundColor: getBackgroundColor(),
+          borderWidth: isOutline ? 1 : 0,
+         borderColor: isOutline ? colors.primary : 'rgba(0,0,0,0)'
+        }
+      ]}
     >
-      {loading === true ? (
-        <ActivityIndicator color={getTextColor()} />
+      {isLoading ? (
+        // ActivityIndicator ရဲ့ color prop မှာ string မှန်ဖို့လိုပါတယ်
+        <ActivityIndicator color={getTextColor()} size="small" />
       ) : (
         <Text style={[styles.text, { color: getTextColor() }]}>{title}</Text>
       )}

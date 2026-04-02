@@ -1,117 +1,53 @@
 import { create } from 'zustand';
-import { onAuthStateChanged, User, signOut } from 'firebase/auth';
-import { auth } from '../services/firebaseConfig';
-
-// Fallback in-memory storage if AsyncStorage is null or failing
-const inMemoryStorage: Record<string, string> = {};
-
-const getAsyncStorage = () => {
-  try {
-    return require('@react-native-async-storage/async-storage').default;
-  } catch (e) {
-    console.warn('AsyncStorage native module not found, using memory fallback');
-    return null;
-  }
-};
-
-const storage = {
-  getItem: async (key: string) => {
-    try {
-      const AS = getAsyncStorage();
-      if (AS) return await AS.getItem(key);
-      return inMemoryStorage[key] || null;
-    } catch (e) {
-      return inMemoryStorage[key] || null;
-    }
-  },
-  setItem: async (key: string, value: string) => {
-    try {
-      inMemoryStorage[key] = value;
-      const AS = getAsyncStorage();
-      if (AS) await AS.setItem(key, value);
-    } catch (e) {
-      console.warn('Storage set failed:', e);
-    }
-  },
-  removeItem: async (key: string) => {
-    try {
-      delete inMemoryStorage[key];
-      const AS = getAsyncStorage();
-      if (AS) await AS.removeItem(key);
-    } catch (e) {
-      console.warn('Storage remove failed:', e);
-    }
-  }
-};
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import i18n from '../i18n'; // i18n file ကို import လုပ်ပါ
 
 interface AuthState {
-  user: User | null;
   isGuest: boolean;
   isLoading: boolean;
-  setUser: (user: User | null) => void;
-  setGuest: (isGuest: boolean) => void;
-  setLoading: (loading: boolean) => void;
-  init: () => () => void;
+  language: 'mm' | 'en'; // Language state ထည့်မယ်
   loginAsGuest: () => Promise<void>;
   logout: () => Promise<void>;
+  setLanguage: (lang: 'mm' | 'en') => Promise<void>; // Language ပြောင်းတဲ့ function
+  init: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
   isGuest: false,
   isLoading: true,
-  setUser: (user) => set({ user }),
-  setGuest: (isGuest) => set({ isGuest }),
-  setLoading: (isLoading) => set({ isLoading }),
-  init: () => {
-    let hasInitialized = false;
-    let unsubscribe = () => {};
+  language: 'mm', // Default က မြန်မာ
 
-    if (auth) {
-      unsubscribe = onAuthStateChanged(auth, async (user) => {
-        try {
-          const guestFlag = await storage.getItem('isGuest');
-          set({ 
-            user, 
-            isGuest: guestFlag === 'true' && !user,
-            isLoading: false 
-          });
-          hasInitialized = true;
-        } catch (error) {
-          set({ isLoading: false });
-        }
-      }, (error) => {
-        console.warn('Firebase Auth error:', error);
-        set({ isLoading: false });
-      });
-    } else {
-      storage.getItem('isGuest').then(guestFlag => {
-        set({ isGuest: guestFlag === 'true', isLoading: false });
-        hasInitialized = true;
-      });
-    }
-
-    setTimeout(async () => {
-      if (!hasInitialized) {
-        const guestFlag = await storage.getItem('isGuest');
-        set({ isGuest: guestFlag === 'true', isLoading: false });
-      }
-    }, 2000);
-
-    return unsubscribe;
-  },
   loginAsGuest: async () => {
-    try {
-      await storage.setItem('isGuest', 'true');
-      set({ isGuest: true, user: null, isLoading: false });
-    } catch (error) {
-      console.error('loginAsGuest error', error);
-      set({ isGuest: true, user: null, isLoading: false }); // Force enter
-    }
+    await AsyncStorage.setItem('@auth_status', 'guest');
+    set({ isGuest: true });
   },
+  
   logout: async () => {
-    await storage.removeItem('isGuest');
-    if (auth) await signOut(auth);
-    set({ user: null, isGuest: false });
+    await AsyncStorage.removeItem('@auth_status');
+    set({ isGuest: false });
   },
+
+  setLanguage: async (lang) => {
+    await AsyncStorage.setItem('@app_lang', lang);
+    i18n.changeLanguage(lang); // i18next ကိုပါ တစ်ခါတည်း ပြောင်းခိုင်းမယ်
+    set({ language: lang });
+  },
+
+  init: async () => {
+    try {
+      const guestFlag = await AsyncStorage.getItem('@auth_status');
+      const savedLang = await AsyncStorage.getItem('@app_lang') as 'mm' | 'en' | null;
+      
+      const currentLang = savedLang || 'mm';
+      i18n.changeLanguage(currentLang); // သိမ်းထားတဲ့ language အတိုင်း app ကို ဖွင့်မယ်
+
+      set({ 
+        isGuest: guestFlag === 'guest', 
+        language: currentLang,
+        isLoading: false 
+      });
+    } catch (error) {
+      set({ isLoading: false });
+    }
+  }
 }));

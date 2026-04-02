@@ -1,272 +1,260 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { useExpenseStore } from '../context/useExpenseStore';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../theme/colors';
-import { CustomButton } from '../components/CustomButton';
-import { LucideIcon, ChevronDown, Calendar, Tag, CreditCard, FileText } from 'lucide-react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { formatDisplayDate } from '../utils/dateHelpers';
-
-const CATEGORIES = [
-  'အစားအစာ', 'သယ်ယူပို့ဆောင်ရေး', 'ဈေးဝယ်ခြင်း', 'ဖျော်ဖြေရေး', 'ကျန်းမာရေး', 'ပညာရေး', 'အလှူအတန်း', 'လစာ/ဝင်ငွေ', 'အခြား'
-];
+import { useTranslation } from 'react-i18next';
+import { ChevronLeft, Save, Tag, Calendar, Edit3 } from 'lucide-react-native';
+import { CategoryModal } from '../components/CategoryModal';
+import { saveLocalTransaction } from './storageService';
 
 export const AddTransactionScreen = ({ navigation }: any) => {
-  const { addTransaction } = useExpenseStore();
-  const [type, setType] = useState<'income' | 'expense'>('expense');
-  const [title, setTitle] = useState('');
+  const { t } = useTranslation();
+  
+  // States
+  const [type, setType] = useState<'expense' | 'income'>('expense');
+  const [isFocused, setIsFocused] = useState(false);
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState(CATEGORIES[0]);
-  const [note, setNote] = useState('');
+  const [catModal, setCatModal] = useState(false);
+  const [selectedCat, setSelectedCat] = useState<any>(null);
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [note, setNote] = useState('');
 
   const handleSave = async () => {
-    if (!title.trim() || !amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-      Alert.alert('အချက်အလက်မှားယွင်းနေပါသည်', 'ခေါင်းစဉ်နှင့် ပမာဏကို မှန်ကန်စွာ ဖြည့်သွင်းပါ။');
-      return;
-    }
+  // ၁။ Validation: ပမာဏ သုညထက်ကြီးရမယ်
+  const numAmount = parseFloat(amount);
+  if (!amount || numAmount <= 0) {
+    alert("ပမာဏကို မှန်ကန်စွာ ရိုက်ထည့်ပါ"); // Amount must be > 0
+    return;
+  }
 
-    setIsLoading(true);
-    try {
-      await addTransaction({
-        title: title.trim(),
-        amount: parseFloat(amount),
-        category,
-        type,
-        transactionDate: date,
-        note: note.trim() || undefined,
-      });
-      navigation.goBack();
-    } catch (error) {
-      Alert.alert('မှားယွင်းမှုဖြစ်ပေါ်ခဲ့ပါသည်', 'ပြန်လည်ကြိုးစားကြည့်ပါ။');
-    } finally {
-      setIsLoading(false);
-    }
+  if (!selectedCat) {
+    alert("အမျိုးအစား ရွေးချယ်ပေးပါ");
+    return;
+  }
+
+  // ၂။ Data Structure (Prompt အတိုင်း)
+  const newTransaction = {
+    id: Date.now().toString(),
+    title: note || selectedCat.name,
+    amount: numAmount,
+    category: selectedCat.name,
+    type: type, // 'expense' | 'income'
+    transactionDate: date.toISOString(),
+    createdAt: new Date().toISOString(),
   };
 
+  try {
+    // ၃။ Local AsyncStorage ထဲမှာ အရင်သိမ်းမယ် (Guest Mode logic)
+    const success = await saveLocalTransaction(newTransaction);
+    
+    if (success) {
+      alert("မှတ်တမ်းတင်ပြီးပါပြီ");
+      navigation.goBack();
+    }
+  } catch (error) {
+    alert("သိမ်းဆည်းရာတွင် အမှားအယွင်းရှိနေပါသည်");
+  }
+};
+
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>မှတ်တမ်းအသစ်</Text>
-      </View>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+      style={styles.container}
+    >
+      <LinearGradient colors={[colors.primary, colors.secondary]} style={styles.header}>
+        <View style={styles.headerContent}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <ChevronLeft color="#fff" size={28} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t('createRecord')}</Text>
+          <View style={{ width: 28 }} />
+        </View>
+      </LinearGradient>
 
-      <View style={styles.toggleContainer}>
-        <TouchableOpacity 
-          style={[styles.toggleButton, type === 'expense' ? styles.activeToggleExpense : null]} 
-          onPress={() => setType('expense')}
-        >
-          <Text style={[styles.toggleText, type === 'expense' ? styles.activeToggleText : null]}>အသုံးစရိတ် (-)</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.toggleButton, type === 'income' ? styles.activeToggleIncome : null]} 
-          onPress={() => setType('income')}
-        >
-          <Text style={[styles.toggleText, type === 'income' ? styles.activeToggleText : null]}>ဝင်ငွေ (+)</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.form}>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>ပစ္စည်းအမည်</Text>
-          <View style={styles.inputWrapper}>
-            <Tag size={20} color={colors.text.secondary} />
-            <TextInput
-              style={styles.input}
-              placeholder="ဥပမာ- ထမင်းစားစရိတ်"
-              placeholderTextColor={colors.text.secondary}
-              value={title}
-              onChangeText={setTitle}
-            />
+      <ScrollView 
+        contentContainerStyle={styles.formContainer} 
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Switcher */}
+        <View style={styles.switcherContainer}>
+          <View style={styles.switcherBackground}>
+            <TouchableOpacity 
+              onPress={() => setType('expense')}
+              style={[styles.switchBtn, type === 'expense' && styles.activeExpense]}
+            >
+              <Text style={[styles.switchText, type === 'expense' && { color: '#fff' }]}>{t('expense')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => setType('income')}
+              style={[styles.switchBtn, type === 'income' && styles.activeIncome]}
+            >
+              <Text style={[styles.switchText, type === 'income' && { color: '#fff' }]}>{t('income')}</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>ပမာဏ</Text>
-          <View style={styles.inputWrapper}>
-            <CreditCard size={20} color={colors.text.secondary} />
-            <TextInput
-              style={styles.input}
-              placeholder="၀"
-              placeholderTextColor={colors.text.secondary}
-              keyboardType="numeric"
+        {/* Amount Input */}
+        <View style={styles.inputWrapper}>
+          <Text style={styles.label}>{t('amount')}</Text>
+          <View style={[styles.amountBox, isFocused && { borderBottomColor: colors.primary }]}>
+            <Text style={styles.currencySymbol}>Ks</Text>
+            <TextInput 
+              style={styles.amountInput}
               value={amount}
-              onChangeText={setAmount}
+              placeholder="0"
+              keyboardType="decimal-pad"
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              placeholderTextColor="#999"
+              onChangeText={(text) => setAmount(text.replace(/[^0-9.]/g, ''))}
+              {...(Platform.OS === 'web' && { 
+                style: [styles.amountInput, { outlineStyle: 'none' } as any] 
+              })}
             />
           </View>
         </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>မှတ်ချက် (မထည့်လည်းရသည်)</Text>
-          <View style={styles.inputWrapper}>
-            <FileText size={20} color={colors.text.secondary} />
-            <TextInput
-              style={styles.input}
-              placeholder="မှတ်သားလိုသည်များ..."
-              placeholderTextColor={colors.text.secondary}
+        {/* Row for Category and Date */}
+        <View style={styles.row}>
+          <TouchableOpacity 
+            style={styles.iconBox} 
+            onPress={() => setCatModal(true)}
+          >
+            <Tag size={18} color={colors.primary} />
+            <Text style={styles.boxText} numberOfLines={1}>
+              {selectedCat ? selectedCat.name : t('category')}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+  style={styles.iconBox} 
+  onPress={() => setShowDatePicker(true)}
+>
+  <Calendar size={18} color={colors.primary} />
+  <Text style={styles.boxText}>
+    {date.toDateString() === new Date().toDateString() ? t('today') : date.toLocaleDateString()}
+  </Text>
+</TouchableOpacity>
+        </View>
+
+        {/* Note Section */}
+        <View style={styles.inputWrapper}>
+          <Text style={styles.label}>{t('note')}</Text>
+          <View style={styles.noteBox}>
+            <Edit3 size={18} color="#999" style={{ marginTop: 2 }} />
+            <TextInput 
+              style={styles.noteInput}
+              placeholder={t('writeNote')}
+              multiline
               value={note}
               onChangeText={setNote}
+              placeholderTextColor="#999"
+              
             />
           </View>
         </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>အမျိုးအစား</Text>
-          <View style={styles.categoryContainer}>
-            {CATEGORIES.map((cat) => (
-              <TouchableOpacity 
-                key={cat} 
-                style={[styles.categoryChip, category === cat ? styles.activeCategoryChip : null]}
-                onPress={() => setCategory(cat)}
-              >
-                <Text style={[styles.categoryText, category === cat ? styles.activeCategoryText : null]}>{cat}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+        {/* Save Button */}
+       <TouchableOpacity 
+  style={styles.saveBtn} 
+  activeOpacity={0.8}
+  onPress={handleSave}
+>
+  <Save color="#fff" size={20} />
+  <Text style={styles.saveText}>{t('save')}</Text>
+</TouchableOpacity>
+        
+        <View style={{ height: 40 }} />
+      </ScrollView>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>ရက်စွဲ</Text>
-          <TouchableOpacity 
-            style={styles.inputWrapper} 
-            onPress={() => setShowDatePicker(true)}
-          >
-            <Calendar size={20} color={colors.text.secondary} />
-            <Text style={styles.dateText}>{formatDisplayDate(date)}</Text>
-          </TouchableOpacity>
-        </View>
+{/* Category Modal */}
+      <CategoryModal 
+        visible={catModal} 
+        onClose={() => setCatModal(false)} 
+        onSelect={(cat: any) => setSelectedCat(cat)} 
+      />
 
-        {showDatePicker && (
-          <DateTimePicker
-            value={date}
-            mode="date"
-            display="default"
-            onChange={(event, selectedDate) => {
-              setShowDatePicker(false);
-              if (selectedDate) setDate(selectedDate);
-            }}
-          />
-        )}
-
-        <View style={styles.buttonContainer}>
-          <CustomButton 
-            title="မှတ်တမ်းတင်မည်" 
-            onPress={handleSave} 
-            loading={isLoading}
-          />
-          <CustomButton 
-            title="ပယ်ဖျက်မည်" 
-            variant="outline" 
-            onPress={() => navigation.goBack()} 
-          />
-        </View>
-      </View>
-    </ScrollView>
+     {/* {showDatePicker && (
+  <DateTimePicker
+    value={date}
+    mode="date"
+    display="spinner"
+    onChange={(event, selectedDate) => {
+      setShowDatePicker(false); 
+      if (selectedDate) {
+        setDate(selectedDate);
+      }
+    }}
+  />
+)} */}
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
+  container: { flex: 1, backgroundColor: '#fcfcfc' },
+  header: { 
+    height: 90, 
+    justifyContent: 'flex-end', 
+    paddingBottom: 15, 
+    borderBottomLeftRadius: 25, 
+    borderBottomRightRadius: 25,
   },
-  header: {
-    padding: 24,
-    paddingTop: 60,
-    backgroundColor: colors.surface,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text.primary,
-  },
-  toggleContainer: {
-    flexDirection: 'row',
-    margin: 16,
-    backgroundColor: '#e2e8f0',
-    borderRadius: 12,
-    padding: 4,
-  },
-  toggleButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderRadius: 10,
-  },
-  activeToggleExpense: {
-    backgroundColor: colors.expense,
-  },
-  activeToggleIncome: {
-    backgroundColor: colors.income,
-  },
-  toggleText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text.secondary,
-  },
-  activeToggleText: {
-    color: '#ffffff',
-  },
-  form: {
-    padding: 16,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginBottom: 8,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 56,
+  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20 },
+  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '600' },
+  backBtn: { padding: 4 },
+  formContainer: { paddingHorizontal: 25, paddingTop: 20 },
+  switcherContainer: { marginBottom: 20, alignItems: 'center' },
+  switcherBackground: { flexDirection: 'row', backgroundColor: '#f0f0f0', padding: 4, borderRadius: 20, width: '100%' },
+  switchBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 18 },
+  activeExpense: { backgroundColor: '#ff6b6b' },
+  activeIncome: { backgroundColor: '#20d3fe' },
+  switchText: { fontSize: 14, fontWeight: '600', color: '#777' },
+  inputWrapper: { marginBottom: 15 }, 
+  label: { fontSize: 12, color: '#999', marginBottom: 5, fontWeight: '500' },
+  amountBox: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1.2, borderBottomColor: '#eee', paddingBottom: 5 },
+  currencySymbol: { fontSize: 20, color: '#333', marginRight: 10, fontWeight: '500' },
+  amountInput: { flex: 1, fontSize: 26, color: '#333', fontWeight: '600', padding: 0 },
+  row: { flexDirection: 'row', gap: 12, marginBottom: 15 },
+  iconBox: { 
+    flex: 1, 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#fff', 
+    padding: 12, 
+    borderRadius: 15, 
+    gap: 8,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#f0f0f0',
+    // Shadow for iOS/Android
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
   },
-  input: {
-    flex: 1,
-    marginLeft: 12,
-    fontSize: 16,
-    color: colors.text.primary,
+  boxText: { fontSize: 13, color: '#444', fontWeight: '500' },
+  noteBox: { 
+    flexDirection: 'row', 
+    backgroundColor: '#fff', 
+    padding: 12, 
+    borderRadius: 15, 
+    borderWidth: 1, 
+    borderColor: '#f0f0f0', 
+    minHeight: 70, 
   },
-  categoryContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  noteInput: { flex: 1, marginLeft: 10, fontSize: 15, textAlignVertical: 'top', color: '#333', paddingTop: 0 },
+  saveBtn: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    backgroundColor: colors.primary, 
+    padding: 15, 
+    borderRadius: 18, 
+    gap: 10, 
+    marginTop: 10,
   },
-  categoryChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#f1f5f9',
-    borderRadius: 20,
-    marginRight: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  activeCategoryChip: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  categoryText: {
-    fontSize: 14,
-    color: colors.text.secondary,
-  },
-  activeCategoryText: {
-    color: '#ffffff',
-  },
-  dateText: {
-    marginLeft: 12,
-    fontSize: 16,
-    color: colors.text.primary,
-  },
-  buttonContainer: {
-    marginTop: 12,
-  },
+  saveText: { color: '#fff', fontSize: 16, fontWeight: '700' }
 });

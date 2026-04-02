@@ -1,16 +1,18 @@
 export const colors = {
-  primary: '#4f46e5', // Indigo
-  secondary: '#10b981', // Emerald
-  danger: '#f43f5e', // Rose
-  success: '#10b981', // Emerald
-  background: '#f8fafc',
-  surface: '#ffffff',
+  primaryGradient: ['#6A5AE0', '#8E81F3'],
+  glassWhite: 'rgba(255, 255, 255, 0.7)',
+  glassBorder: 'rgba(255, 255, 255, 0.3)',
+  primary: '#6A5AE0',
+  secondary: '#00D1FF',
+  accent: '#FF6B6B',
+  income: '#00D1FF',
+  expense: '#FF6B6B',
+  background: '#F8F9FE',
+  surface: '#FFFFFF',
+  border: '#E0E0E0', // ဒါလေး တစ်ခုပဲ တိုးထားပါတယ်
   text: {
-    primary: '#1e293b',
-    secondary: '#64748b',
-    inverse: '#ffffff',
+    primary: '#1A1D1F',
+    secondary: '#9A9EA4',
   },
-  border: '#e2e8f0',
-  income: '#10b981',
-  expense: '#f43f5e',
+  white: '#FFFFFF',
 };

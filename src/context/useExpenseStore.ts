@@ -1,129 +1,82 @@
 import { create } from 'zustand';
-import { Transaction, firestoreService } from '../services/firestoreService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from './useAuthStore';
 
-// Fallback in-memory storage for transactions
-const inMemoryStorage: Record<string, string> = {};
-
-const getAsyncStorage = () => {
-  try {
-    return require('@react-native-async-storage/async-storage').default;
-  } catch (e) {
-    return null;
-  }
-};
-
-const storage = {
-  getItem: async (key: string) => {
-    try {
-      const AS = getAsyncStorage();
-      if (AS) return await AS.getItem(key);
-      return inMemoryStorage[key] || null;
-    } catch (e) {
-      return inMemoryStorage[key] || null;
-    }
-  },
-  setItem: async (key: string, value: string) => {
-    try {
-      inMemoryStorage[key] = value;
-      const AS = getAsyncStorage();
-      if (AS) await AS.setItem(key, value);
-    } catch (e) {}
-  },
-  removeItem: async (key: string) => {
-    try {
-      delete inMemoryStorage[key];
-      const AS = getAsyncStorage();
-      if (AS) await AS.removeItem(key);
-    } catch (e) {}
-  }
-};
+// Error မတက်အောင် Interface ကို ဒီထဲမှာတင် အသေကြေညာလိုက်ပါမယ်
+export interface Transaction {
+  id: string;
+  userId: string;
+  title: string;
+  amount: number;
+  category: string;
+  type: 'income' | 'expense';
+  transactionDate: string;
+  createdAt: string;
+}
 
 interface ExpenseState {
   transactions: Transaction[];
   isLoading: boolean;
-  addTransaction: (t: Omit<Transaction, 'userId' | 'id'>) => Promise<void>;
-  updateTransaction: (id: string, t: Partial<Transaction>) => Promise<void>;
-  deleteTransaction: (id: string) => Promise<void>;
   fetchTransactions: () => Promise<void>;
-  migrateGuestData: (userId: string) => Promise<void>;
+  addTransaction: (t: { 
+    title: string; 
+    amount: number; 
+    category: string; 
+    type: 'income' | 'expense'; 
+    transactionDate: string 
+  }) => Promise<void>;
 }
-
-const LOCAL_STORAGE_KEY = '@ngwenote_local_transactions';
 
 export const useExpenseStore = create<ExpenseState>((set, get) => ({
   transactions: [],
   isLoading: false,
-  addTransaction: async (t) => {
-    const { user, isGuest } = useAuthStore.getState();
-    if (user) {
-      const docRef = await firestoreService.addTransaction({ ...t, userId: user.uid });
-      set({ transactions: [{ ...t, id: docRef.id, userId: user.uid }, ...get().transactions] });
-    } else if (isGuest) {
-      const localT = { ...t, id: Date.now().toString(), userId: 'guest' };
-      const newTransactions = [localT as Transaction, ...get().transactions];
-      await storage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newTransactions));
-      set({ transactions: newTransactions });
-    }
-  },
-  updateTransaction: async (id, t) => {
-    const { user, isGuest } = useAuthStore.getState();
-    if (user) {
-      await firestoreService.updateTransaction(id, t);
-      set({
-        transactions: get().transactions.map(item => item.id === id ? { ...item, ...t } : item)
-      });
-    } else if (isGuest) {
-      const newTransactions = get().transactions.map(item => item.id === id ? { ...item, ...t } : item);
-      await storage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newTransactions));
-      set({ transactions: newTransactions });
-    }
-  },
-  deleteTransaction: async (id) => {
-    const { user, isGuest } = useAuthStore.getState();
-    if (user) {
-      await firestoreService.deleteTransaction(id);
-      set({ transactions: get().transactions.filter(item => item.id !== id) });
-    } else if (isGuest) {
-      const newTransactions = get().transactions.filter(item => item.id !== id);
-      await storage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newTransactions));
-      set({ transactions: newTransactions });
-    }
-  },
+
   fetchTransactions: async () => {
+    // isLoading ကို true ပေးမယ်
     set({ isLoading: true });
-    const { user, isGuest } = useAuthStore.getState();
-    if (user) {
-      try {
-        const transactions = await firestoreService.getTransactions(user.uid);
-        set({ transactions, isLoading: false });
-      } catch (e) {
-        set({ isLoading: false });
+    
+    try {
+      const { isGuest } = useAuthStore.getState();
+      
+      if (isGuest) {
+        const data = await AsyncStorage.getItem('@local_data');
+        const parsedData = data ? JSON.parse(data) : [];
+        set({ transactions: parsedData, isLoading: false });
+      } else {
+        // လောလောဆယ် Guest မဟုတ်ရင် data အလွတ်ပဲ ပြထားမယ်
+        set({ transactions: [], isLoading: false });
       }
-    } else if (isGuest) {
-      const localData = await storage.getItem(LOCAL_STORAGE_KEY);
-      const transactions = localData ? JSON.parse(localData).map((t: any) => ({
-        ...t,
-        transactionDate: new Date(t.transactionDate)
-      })) : [];
-      set({ transactions, isLoading: false });
-    } else {
+    } catch (error) {
+      console.error("Fetch error:", error);
       set({ transactions: [], isLoading: false });
     }
   },
-  migrateGuestData: async (userId) => {
-    const localData = await storage.getItem(LOCAL_STORAGE_KEY);
-    if (localData) {
-      const transactions = JSON.parse(localData).map((t: any) => ({
+
+  addTransaction: async (t) => {
+    try {
+      const { isGuest } = useAuthStore.getState();
+      
+      // Transaction အသစ်ကို တည်ဆောက်မယ်
+      const newTransaction: Transaction = {
         ...t,
-        transactionDate: new Date(t.transactionDate)
-      }));
-      if (transactions.length > 0) {
-        await firestoreService.batchUploadTransactions(userId, transactions);
-        await storage.removeItem(LOCAL_STORAGE_KEY);
-        const cloudData = await firestoreService.getTransactions(userId);
-        set({ transactions: cloudData });
+        id: Date.now().toString(),
+        userId: isGuest ? 'guest' : 'user',
+        createdAt: new Date().toISOString()
+      };
+
+      if (isGuest) {
+        // လက်ရှိရှိတဲ့ transactions တွေထဲကို အသစ်တစ်ခု ထည့်မယ်
+        const currentTransactions = get().transactions;
+        const updated = [newTransaction, ...currentTransactions];
+        
+        // AsyncStorage မှာ သိမ်းမယ်
+        await AsyncStorage.setItem('@local_data', JSON.stringify(updated));
+        
+        // State ကို update လုပ်မယ်
+        set({ transactions: updated });
       }
+    } catch (error) {
+      console.error("Add error:", error);
     }
   }
 }));
