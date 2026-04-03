@@ -2,62 +2,89 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
-import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Platform, Text } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { HomeScreen } from '../screens/HomeScreen';
 import { AddTransactionScreen } from '../screens/AddTransactionScreen';
 import { LoginScreen } from '../screens/LoginScreen'; 
 import { useAuthStore } from '../context/useAuthStore'; 
-import { colors } from '../theme/colors';
-import { Wallet, History as HistoryIcon, Settings, Plus } from 'lucide-react-native';
+import { useThemeStore } from '../context/useThemeStore'; // Theme Store ကို ခေါ်သုံးမယ်
+import { fontSize } from '../theme/fontSize';
+import { Wallet, History as HistoryIcon, Settings, Plus, PieChart } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
+import { HistoryScreen } from '../screens/HistoryScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-const CustomTabBarButton = ({ children, onPress }: any) => (
-  <TouchableOpacity style={styles.fabContainer} onPress={onPress}>
-    <View style={styles.fab}>
-      <Plus color={colors.white} size={28} />
-    </View>
-  </TouchableOpacity>
-);
+// Custom Plus Button Component
+const CustomTabBarButton = ({ children, onPress }: any) => {
+  const { getColors } = useThemeStore();
+  const themeColors = getColors();
+
+  // gradientColors ကို fallback (||) ခံထားရင် ဘယ်တော့မှ crash မဖြစ်တော့ပါဘူး
+  const gradientColors = themeColors.primaryGradient || ['#6A5AE0', '#00D1FF'];
+
+  return (
+    <TouchableOpacity 
+      activeOpacity={0.8}
+      style={styles.fabContainer} 
+      onPress={onPress}
+    >
+      <LinearGradient
+        colors={gradientColors}
+        style={[styles.fab, { borderColor: themeColors.background }]}
+      >
+        <Plus color="#FFFFFF" size={32} strokeWidth={2.5} />
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+};
 
 function TabNavigator() {
   const { t } = useTranslation();
+  const { theme, getColors } = useThemeStore();
+  const themeColors = getColors();
 
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarShowLabel: true,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: '#a5a8f3',
-        tabBarStyle: styles.tabBar,
+        tabBarActiveTintColor: themeColors.primary,
+        tabBarInactiveTintColor: themeColors.text.secondary,
+        tabBarStyle: [
+          styles.tabBar, 
+          { 
+            backgroundColor: theme === 'light' ? 'rgba(255, 255, 255, 0.95)' : themeColors.surface,
+            shadowColor: themeColors.primary 
+          }
+        ],
         tabBarLabelStyle: styles.tabBarLabel,
-        tabBarIcon: ({ color, size }) => {
-          if (route.name === 'HomeTab') return <Wallet color={color} size={22} />;
-          if (route.name === 'History') return <HistoryIcon color={color} size={22} />;
-          if (route.name === 'Settings') return <Settings color={color} size={22} />;
+        tabBarIcon: ({ color, focused }) => {
+          const size = focused ? 24 : 22;
+          if (route.name === 'HomeTab') return <Wallet color={color} size={size} />;
+          if (route.name === 'Analytics') return <PieChart color={color} size={size} />;
+          if (route.name === 'History') return <HistoryIcon color={color} size={size} />;
+          if (route.name === 'Settings') return <Settings color={color} size={size} />;
           return null;
         },
       })}
     >
       <Tab.Screen name="HomeTab" component={HomeScreen} options={{ tabBarLabel: t('home') }} />
+      <Tab.Screen name="Analytics" component={HomeScreen} options={{ tabBarLabel: t('analytics') }} />
       
-      {/* AddTransaction ကို Tab ထဲမှာပဲ တိုက်ရိုက်ထည့်လိုက်ပါပြီ */}
       <Tab.Screen 
         name="AddTransaction" 
         component={AddTransactionScreen} 
         options={{ 
           tabBarLabel: '',
-          tabBarButton: (props) => (
-            <CustomTabBarButton {...props} />
-          )
+          tabBarButton: (props) => <CustomTabBarButton {...props} />
         }} 
       />
 
-      <Tab.Screen name="History" component={HomeScreen} options={{ tabBarLabel: t('history') }} />
+      <Tab.Screen name="History" component={HistoryScreen} options={{ tabBarLabel: t('history') }} />
       <Tab.Screen name="Settings" component={HomeScreen} options={{ tabBarLabel: t('settings') }} />
     </Tab.Navigator>
   );
@@ -72,7 +99,6 @@ export const AppNavigator = () => {
         {!isGuest ? (
           <Stack.Screen name="Login" component={LoginScreen} />
         ) : (
-          /* MainTabs တစ်ခုတည်းဖြင့် Footer ကို အမြဲပြသထားမည် */
           <Stack.Screen name="MainTabs" component={TabNavigator} />
         )}
       </Stack.Navigator>
@@ -84,43 +110,37 @@ const styles = StyleSheet.create({
   tabBar: {
     height: 70, 
     position: 'absolute',
-    bottom: 25, 
-    marginHorizontal: 20,
+    bottom: 20, 
+    marginHorizontal: 15,
     borderRadius: 25,
     paddingBottom: Platform.OS === 'ios' ? 20 : 10,
     paddingTop: 10,
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    borderTopWidth: 0,
+    elevation: 10,
+    shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
-    borderTopWidth: 0,
   },
   tabBarLabel: {
     fontSize: 11,
     fontWeight: '600',
-    marginTop: -5,
+    marginTop: 2,
   },
   fabContainer: {
     top: -25, 
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10,
   },
   fab: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: colors.primary, 
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 10,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 5 },
+    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 10,
+    shadowRadius: 6,
     borderWidth: 4,
-    borderColor: '#fff',
   }
 });

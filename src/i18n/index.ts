@@ -1,7 +1,7 @@
 import i18n from 'i18next';
+import { HistoryIcon } from 'lucide-react-native';
 import { initReactI18next } from 'react-i18next';
 
-// ဘာသာပြန်စာသားများ
 const resources = {
   en: {
     translation: {
@@ -22,19 +22,53 @@ const resources = {
       // Add Transaction Screen
       createRecord: "Create Record",
     amount: "Amount",
-    category: "Select Category",
+      category: "Select Category",
+      food: "Food",
+      shopping: "Shopping",
+      transport: "Transport",
+      rent: "Rent",
+      bills: "Bills",
+      health: "Health",
     today: "Today",
     note: "Note",
     writeNote: "Write a note...",
-    save: "Save Record",
+      save: "Save Record",
+    warning: "Warning",
+  enterAmount: "Please enter a valid amount",
+  selectCategory: "Please select a category",
+  insufficientBalance: "Insufficient Balance",
+  saveError: "Error saving transaction",
+
+
     home: "Home",
+    analytics: "Analytics",
     history: "History",
-    settings: "Settings"
+    settings: "Settings",
+    
+
+    historyTitle: "Transaction History",
+    searchPlaceholder: "Search by note...",
+    all: "All",
+      filterByCategory: "Filter by Category",
+      // HistoryScreen
+      success: "Success",
+      error: "Error",
+      confirm: "Confirm",
+      cancel: "Cancel",
+      enterPasscode: "Enter Passcode",
+      wrongPasscode: "Wrong passcode!",
+      deletedSuccess: "Transaction deleted successfully",
+      options: "Options",
+      editRecord: "Edit Record",
+      deleteRecord: "Delete Record",
+      editMode: "Edit Mode",
+      editNavNote: "Redirecting to edit form...",
+      noRecords: "No records found",
     }
   },
   mm: {
     translation: {
-          appName: "ငွေနုတ်", // Font လှလှလေးနဲ့ပြမှာပါ
+          appName: "ငွေနုတ်",
         appDesc: "သင်၏ အသုံးစရိတ်များကို အလွယ်တကူ\nမှတ်တမ်းတင်ပါ",
       welcome: "ပြန်လည်ကြိုဆိုပါတယ်၊",
       guest: "ဧည့်သည်",
@@ -50,15 +84,47 @@ const resources = {
       footerNote: "ဧည့်သည်အဖြစ်သုံးပါက ဒေတာများကို cloud တွင် သိမ်းဆည်း\nမည်မဟုတ်ပါ။",
       // Add Transaction Screen
       createRecord: "စာရင်းအသစ်ထည့်ရန်",
-    amount: "ပမာဏ",
-    category: "အမျိုးအစားရွေးပါ",
-    today: "ယနေ့",
-    note: "မှတ်စု",
-    writeNote: "မှတ်စုရေးရန်...",
-    save: "သိမ်းဆည်းမည်",
+      amount: "ပမာဏ",
+      category: "အမျိုးအစားရွေးပါ",
+      all: "အားလုံး",
+      food: "စားသောက်စရိတ်",
+      shopping: "ဈေးဝယ်ခြင်း",
+      transport: "သယ်ယူပို့ဆောင်ရေး",
+      rent: "အိမ်လခ",
+      bills: "ဘေလ်ဆောင်ခြင်း",
+      health: "ကျန်းမာရေး",
+      today: "ယနေ့",
+      note: "မှတ်စု",
+      writeNote: "မှတ်စုရေးရန်...",
+      save: "သိမ်းဆည်းမည်",
+      warning: "သတိပေးချက်",
+      enterAmount: "ပမာဏကို မှန်ကန်စွာ ရိုက်ထည့်ပါ",
+      selectCategory: "အမျိုးအစား ရွေးချယ်ပေးပါ",
+      insufficientBalance: "လက်ကျန်ငွေ မလုံလောက်ပါ",
+      saveError: "သိမ်းဆည်းရာတွင် အမှားအယွင်းရှိပါသည်",
+
+
     home: "ပင်မ",
+    analytics: "သုံးသပ်ချက်",
     history: "မှတ်တမ်း",
-    settings: "ဆက်တင်"
+      settings: "ဆက်တင်",
+  historyTitle: "ငွေစာရင်း မှတ်တမ်းများ",
+searchPlaceholder: "မှတ်စုဖြင့် ရှာဖွေရန်...",
+      filterByCategory: "အမျိုးအစားအလိုက် စစ်ထုတ်ရန်",
+      //history Screen
+      success: "အောင်မြင်သည်",
+      error: "အမှားအယွင်း",
+      confirm: "အတည်ပြုမည်",
+      cancel: "ပယ်ဖျက်မည်",
+      enterPasscode: "လျှို့ဝှက်နံပါတ် ရိုက်ထည့်ပါ",
+      wrongPasscode: "လျှို့ဝှက်နံပါတ် မှားယွင်းနေသည်",
+      deletedSuccess: "စာရင်းကို ဖျက်သိမ်းပြီးပါပြီ",
+      options: "ရွေးချယ်စရာများ",
+      editRecord: "စာရင်းပြင်ဆင်မည်",
+      deleteRecord: "စာရင်းဖျက်သိမ်းမည်",
+      editMode: "ပြင်ဆင်ရန်",
+      editNavNote: "ပြင်ဆင်ရန် Form သို့ သွားပါမည်",
+      noRecords: "မှတ်တမ်းများ မရှိသေးပါ",
     }
   }
 };
