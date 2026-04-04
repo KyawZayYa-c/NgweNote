@@ -190,7 +190,6 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
   style={[styles.amountInput, { color: themeColors.text.primary }]}
   value={amount}
   placeholder="0"
-  // ✅ ဒီစာကြောင်းကို ထည့်ပေးပါ (Theme အလိုက် placeholder အရောင်ပြောင်းရန်)
   placeholderTextColor={theme === 'dark' ? '#9CA3AF' : '#6B7280'} 
   keyboardType="decimal-pad"
   onChangeText={(text) => setAmount(text.replace(/[^0-9.]/g, ''))}
@@ -241,14 +240,16 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
         </View>
 
         <TouchableOpacity 
-          style={[styles.saveBtn, { backgroundColor: themeColors.primary }, (type === 'expense' && numAmount > currentBalance) && { opacity: 0.5 }]} 
           onPress={handleSave}
           disabled={type === 'expense' && numAmount > currentBalance}
         >
+          <LinearGradient colors={themeColors.primaryBtn || ['#6A5AE0', '#00D1FF']} style={[styles.saveBtn, { backgroundColor: themeColors.primary }, (type === 'expense' && numAmount > currentBalance) && { opacity: 0.5 }]}
+          >
           <Save color="#fff" size={20} />
           <Text style={styles.saveText}>
             {type === 'expense' && numAmount > currentBalance ? t('insufficientBalance') : (isEditMode ? t('update') : t('save'))}
-          </Text>
+            </Text>
+            </LinearGradient>
         </TouchableOpacity>
       </ScrollView>
 

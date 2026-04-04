@@ -12,6 +12,7 @@ const common = {
 
 export const lightColors = {
   ...common,
+  primaryBtn: ['#6A5AE0', '#00D1FF'],
   background: '#F4F7FF',
   surface: '#FFFFFF',
   cardShadow: 'rgba(0, 0, 0, 0.1)',
@@ -34,7 +35,7 @@ export const darkColors = {
   
   // အပေါ်ပိုင်း Gradient အတွက် Premium ဆန်တဲ့ အပြာရင့်ပြေး
   primaryGradient: ['#1E293B', '#0F172A'], 
-  
+  primaryBtn: ['#42bec4c7','#9768e3f3'],
   text: {
     primary: '#F8FAFC',
     secondary: '#94A3B8',

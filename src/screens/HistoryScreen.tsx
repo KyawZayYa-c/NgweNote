@@ -3,13 +3,12 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, M
 import { useExpenseStore } from '../context/useExpenseStore';
 import { useThemeStore } from '../context/useThemeStore';
 import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
-import { Search, Trash2, Calendar as CalendarIcon, TrendingUp, TrendingDown, Tag, Lock } from 'lucide-react-native';
+import { Search, Calendar as CalendarIcon, TrendingUp, TrendingDown, Tag, Lock } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
 
 export const HistoryScreen = () => {
-  // ✅ Navigation navigation type error ကင်းဝေးစေရန် any သုံးထားသည်
   const navigation = useNavigation<any>(); 
   const { transactions, deleteTransaction, userPasscode } = useExpenseStore();
   const { theme, getColors } = useThemeStore();
@@ -54,7 +53,6 @@ export const HistoryScreen = () => {
         setIsPasscodeModal(false);
         Alert.alert(t('success'), t('deletedSuccess'));
       }
-      
       setPasscode('');
       setPendingAction(null);
     } else {
@@ -89,30 +87,42 @@ export const HistoryScreen = () => {
       })
       .sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime());
   }, [transactions, searchQuery, activeFilter]);
-  
+
+  // ✅ လအလိုက်ရော ရက်အလိုက်ရော Group ဖွဲ့ခြင်း
   const groupedTransactions = useMemo(() => {
-    const groups: { [key: string]: { data: any[], in: number, out: number } } = {};
+    const groups: any = {};
     const limitedData = filteredTransactions.slice(0, displayLimit);
 
     limitedData.forEach(t => {
+      const monthKey = format(new Date(t.transactionDate), 'MMMM yyyy');
       const dateKey = format(new Date(t.transactionDate), 'yyyy-MM-dd');
-      if (!groups[dateKey]) groups[dateKey] = { data: [], in: 0, out: 0 };
-      groups[dateKey].data.push(t);
-      if (t.type === 'income') groups[dateKey].in += t.amount;
-      else groups[dateKey].out += t.amount;
+
+      if (!groups[monthKey]) {
+        groups[monthKey] = { monthTitle: monthKey, days: {}, monthIn: 0, monthOut: 0 };
+      }
+      if (!groups[monthKey].days[dateKey]) {
+        groups[monthKey].days[dateKey] = { date: dateKey, data: [], dayIn: 0, dayOut: 0 };
+      }
+
+      groups[monthKey].days[dateKey].data.push(t);
+      if (t.type === 'income') {
+        groups[monthKey].monthIn += t.amount;
+        groups[monthKey].days[dateKey].dayIn += t.amount;
+      } else {
+        groups[monthKey].monthOut += t.amount;
+        groups[monthKey].days[dateKey].dayOut += t.amount;
+      }
     });
 
-    return Object.keys(groups)
-      .sort((a, b) => b.localeCompare(a)) 
-      .map(date => ({ date, ...groups[date] }));
+    return Object.values(groups).map((m: any) => ({
+      ...m,
+      days: Object.values(m.days).sort((a: any, b: any) => b.date.localeCompare(a.date))
+    }));
   }, [filteredTransactions, displayLimit]);
-  
-  return (
-    <View style={[
-      styles.container, {
-        backgroundColor: theme === 'light' ? '#F4F7FE' : themeColors.background
-      }]}>
 
+  return (
+    <View style={[styles.container, { backgroundColor: theme === 'light' ? '#F4F7FE' : themeColors.background }]}>
+      
       {/* Passcode Modal */}
       <Modal visible={isPasscodeModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
@@ -127,7 +137,6 @@ export const HistoryScreen = () => {
               value={passcode}
               onChangeText={setPasscode}
               autoFocus
-              placeholder="****"
             />
             <View style={styles.modalBtns}>
               <TouchableOpacity onPress={() => { setIsPasscodeModal(false); setPasscode(''); }}>
@@ -141,45 +150,24 @@ export const HistoryScreen = () => {
         </View>
       </Modal>
 
-      {/* Bottom Sheet Menu Modal */}
+      {/* Options Menu Modal */}
       <Modal visible={isMenuVisible} transparent animationType="slide">
-        <TouchableOpacity 
-          style={styles.sheetOverlay} 
-          activeOpacity={1} 
-          onPress={() => setIsMenuVisible(false)}
-        >
+        <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setIsMenuVisible(false)}>
           <View style={[styles.sheetContent, { backgroundColor: themeColors.surface }]}>
             <View style={styles.sheetHandle} />
             <Text style={[styles.sheetTitle, { color: themeColors.text.primary }]}>{t('options')}</Text>
-            
-            <TouchableOpacity 
-              style={styles.sheetBtn} 
-              onPress={() => {
-                setIsMenuVisible(false);
-                handleActionRequest(selectedItem.id, 'edit'); 
-              }}
-            >
+            <TouchableOpacity style={styles.sheetBtn} onPress={() => { setIsMenuVisible(false); handleActionRequest(selectedItem.id, 'edit'); }}>
               <Text style={{ color: '#4A6CF7', fontSize: 16, fontWeight: 'bold' }}>{t('editRecord')}</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.sheetBtn, { borderTopWidth: 0.5, borderTopColor: '#EEE' }]} 
-              onPress={() => {
-                setIsMenuVisible(false);
-                handleActionRequest(selectedItem.id, 'delete'); 
-              }}
-            >
+            <TouchableOpacity style={[styles.sheetBtn, { borderTopWidth: 0.5, borderTopColor: '#EEE' }]} onPress={() => { setIsMenuVisible(false); handleActionRequest(selectedItem.id, 'delete'); }}>
               <Text style={{ color: '#FF6B6B', fontSize: 16, fontWeight: 'bold' }}>{t('deleteRecord')}</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
 
-      {/* Header Summary */}
-      <LinearGradient
-        colors={themeColors.primaryGradient}
-  style={styles.header}
-      >
+      {/* Header */}
+      <LinearGradient colors={themeColors.primaryGradient || ['#4A6CF7', '#6A85F1']} style={styles.header}>
         <Text style={styles.navTitle}>{t('historyTitle')}</Text>
         <View style={styles.monthlySummaryRow}>
           <View style={styles.summaryBox}>
@@ -200,8 +188,8 @@ export const HistoryScreen = () => {
         </View>
       </LinearGradient>
 
-      {/* Search and Filters */}
       <View style={styles.content}>
+        {/* Search */}
         <View style={[styles.searchContainer, { backgroundColor: themeColors.surface }]}>
           <Search size={18} color="#999" />
           <TextInput
@@ -213,72 +201,103 @@ export const HistoryScreen = () => {
           />
         </View>
 
+        {/* Filter Chips */}
         <View style={styles.filterSection}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {filterOptions.map((opt) => (
-              <TouchableOpacity
-                key={opt.id}
-                onPress={() => setActiveFilter(opt.id)}
-                style={[
-                  styles.chip, 
-                  { backgroundColor: activeFilter === opt.id ? '#4A6CF7' : themeColors.surface }
-                ]}
-              >
-                <Text style={[styles.chipText, { color: activeFilter === opt.id ? '#fff' : '#666' }]}>
-                  {opt.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            
+              {filterOptions.map((opt) => {
+  const isActive = activeFilter === opt.id;
+  
+  return (
+    <TouchableOpacity
+      key={opt.id}
+      onPress={() => setActiveFilter(opt.id)}
+      style={styles.chipWrapper} 
+    >
+      {isActive ? (
+        // ✅ Active ဖြစ်နေရင် Gradient အရောင်ပြမယ်
+        <LinearGradient
+          colors={themeColors.primaryBtn || ['#6A5AE0', '#00D1FF']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.chipGradient}
+        >
+          <Text style={[styles.chipText, { color: '#fff' }]}>{opt.label}</Text>
+        </LinearGradient>
+      ) : (
+        // ❌ Active မဟုတ်ရင် ရိုးရိုး Surface အရောင်ပဲပြမယ်
+        <View style={[styles.chipNormal, { backgroundColor: themeColors.surface }]}>
+          <Text style={[styles.chipText, { color: theme === 'dark' ? '#94A3B8' : '#666' }]}>
+            {opt.label}
+          </Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+})}
           </ScrollView>
         </View>
 
-        {/* List of Transactions */}
+        {/* Main List */}
         <FlatList
           data={groupedTransactions}
-          keyExtractor={(item) => item.date}
+          keyExtractor={(item) => item.monthTitle}
           onEndReached={() => setDisplayLimit(prev => prev + 10)}
+          renderItem={({ item: monthGroup, index }) => (
+            <View>
+              {/* Monthly Header Divider */}
+              <View style={styles.monthDivider}>
+                <Text style={styles.monthText}>{monthGroup.monthTitle}</Text>
+                <View style={styles.monthTotalBox}>
+                  <Text style={styles.monthInText}>+{monthGroup.monthIn.toLocaleString()}</Text>
+                  <Text style={styles.monthOutText}>-{monthGroup.monthOut.toLocaleString()}</Text>
+                </View>
+              </View>
+
+              {/* Days in this month */}
+              {monthGroup.days.map((dayGroup: any) => (
+                <View key={dayGroup.date} style={styles.dateBlock}>
+                  <View style={styles.dateHeader}>
+                    <View style={styles.dateLeft}>
+                      <CalendarIcon size={14} color="#888" />
+                      <Text style={styles.dateTitle}>{format(new Date(dayGroup.date), 'MMMM dd, yyyy')}</Text>
+                    </View>
+                    <View style={styles.dateRight}>
+                      {dayGroup.dayIn > 0 && <Text style={styles.dayIn}>+{dayGroup.dayIn.toLocaleString()}</Text>}
+                      {dayGroup.dayOut > 0 && <Text style={styles.dayOut}>-{dayGroup.dayOut.toLocaleString()}</Text>}
+                    </View>
+                  </View>
+
+                  {dayGroup.data.map((tData: any) => (
+                    <TouchableOpacity 
+                      key={tData.id} 
+                      style={[styles.itemCard, { backgroundColor: themeColors.surface }]}
+                      onLongPress={() => { setSelectedItem(tData); setIsMenuVisible(true); }}
+                    >
+                      <View style={styles.itemMain}>
+                        <Text style={[styles.itemLabel, { color: themeColors.text.primary }]}>{tData.title}</Text>
+                        <View style={styles.itemSub}><Tag size={10} color="#999" /><Text style={styles.itemCat}>{tData.category}</Text></View>
+                      </View>
+                      <View style={styles.itemEnd}>
+                        <Text style={[styles.itemAmount, { color: tData.type === 'income' ? '#22C55E' : '#FF6B6B' }]}>
+                          {tData.type === 'income' ? '+' : '-'} {tData.amount.toLocaleString()}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ))}
+
+              {/* ✅ မျဉ်းလေး တားပေးမည့်အပိုင်း (အလယ်မှာပဲ ပေါ်စေရန်) */}
+              {index < groupedTransactions.length - 1 && (
+                <View style={[styles.monthSeparator, { backgroundColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.481)' : 'rgba(0, 0, 0, 0.33)' }]} />
+              )}
+            </View>
+          )}
           ListEmptyComponent={() => (
             <View style={styles.emptyContainer}>
               <CalendarIcon size={60} color="#DDD" />
               <Text style={[styles.emptyText, { color: themeColors.text.secondary }]}>{t('noRecords')}</Text>
-            </View>
-          )}
-          renderItem={({ item }) => (
-            <View style={styles.dateBlock}>
-              <View style={styles.dateHeader}>
-                <View style={styles.dateLeft}>
-                  <CalendarIcon size={14} color="#888" />
-                  <Text style={styles.dateTitle}>{format(new Date(item.date), 'MMMM dd, yyyy')}</Text>
-                </View>
-                <View style={styles.dateRight}>
-                  {item.in > 0 && <Text style={styles.dayIn}>+{item.in.toLocaleString()}</Text>}
-                  {item.out > 0 && <Text style={styles.dayOut}>-{item.out.toLocaleString()}</Text>}
-                </View>
-              </View>
-
-              {item.data.map((tData) => (
-                <TouchableOpacity 
-                  key={tData.id} 
-                  style={[styles.itemCard, { backgroundColor: themeColors.surface }]}
-                  onLongPress={() => {
-                    setSelectedItem(tData); 
-                    setIsMenuVisible(true); 
-                  }}
-                >
-                  <View style={styles.itemMain}>
-                    <Text style={[styles.itemLabel, { color: themeColors.text.primary }]}>{tData.title}</Text>
-                    <View style={styles.itemSub}>
-                      <Tag size={10} color="#999" />
-                      <Text style={styles.itemCat}>{tData.category}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.itemEnd}>
-                    <Text style={[styles.itemAmount, { color: tData.type === 'income' ? '#22C55E' : '#FF6B6B' }]}>
-                      {tData.type === 'income' ? '+' : '-'} {tData.amount.toLocaleString()}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
             </View>
           )}
         />
@@ -299,16 +318,45 @@ const styles = StyleSheet.create({
   searchContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, borderRadius: 12, height: 45, elevation: 3, marginBottom: 15 },
   searchInput: { flex: 1, marginLeft: 8, fontSize: 14 },
   filterSection: { marginBottom: 15 },
+  chipWrapper: {
+  marginRight: 8,
+  borderRadius: 12,
+  overflow: 'hidden', // Gradient က ကွေးနေတဲ့ထောင့်တွေအတိုင်း ဖြစ်နေအောင်
+  elevation: 2,
+},
+chipGradient: {
+  paddingHorizontal: 18,
+  paddingVertical: 10,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+chipNormal: {
+  paddingHorizontal: 18,
+  paddingVertical: 10,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+chipText: {
+  fontSize: 12,
+  fontWeight: '700',
+},
   chip: { paddingHorizontal: 15, paddingVertical: 8, borderRadius: 12, marginRight: 8, elevation: 1 },
-  chipText: { fontSize: 12, fontWeight: '600' },
-  dateBlock: { marginBottom: 20 },
+  // ✅ Month Divider Styles
+  monthDivider: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 5, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)', marginBottom: 15, marginTop: 10 },
+  monthText: { fontSize: 16, fontWeight: '800', color: '#4A6CF7', textTransform: 'uppercase' },
+  monthTotalBox: { flexDirection: 'row', gap: 12 },
+  monthInText: { fontSize: 12, color: '#22C55E', fontWeight: '700' },
+  monthOutText: { fontSize: 12, color: '#FF6B6B', fontWeight: '700' },
+  monthSeparator: { height: 2, marginHorizontal: 30, },
+  // Day Block Styles
+  dateBlock: { marginBottom: 15 },
   dateHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, paddingHorizontal: 4 },
   dateLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dateTitle: { fontSize: 13, fontWeight: 'bold', color: '#777' },
   dateRight: { flexDirection: 'row', gap: 10 },
   dayIn: { fontSize: 11, color: '#22C55E', fontWeight: 'bold' },
   dayOut: { fontSize: 11, color: '#FF6B6B', fontWeight: 'bold' },
-  itemCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, borderRadius: 16, marginBottom: 8, elevation: 1 },
+  itemCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, borderRadius: 16, marginBottom:5,  elevation: 1 },
   itemMain: { flex: 1 },
   itemLabel: { fontSize: 14, fontWeight: '600', marginBottom: 3 },
   itemSub: { flexDirection: 'row', alignItems: 'center', gap: 4 },
