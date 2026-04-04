@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react'; // useRef ထပ်ထည့်ထားပါတယ်
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, Modal, ScrollView } from 'react-native';
 import { useExpenseStore } from '../context/useExpenseStore';
 import { useThemeStore } from '../context/useThemeStore';
-import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { format, startOfMonth, endOfMonth, isWithinInterval, parse } from 'date-fns';
 import { Search, Calendar as CalendarIcon, TrendingUp, TrendingDown, Tag, Lock } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
@@ -24,6 +24,9 @@ export const HistoryScreen = () => {
   const [passcode, setPasscode] = useState('');
   const [isPasscodeModal, setIsPasscodeModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<{id: string, type: 'delete' | 'edit'} | null>(null);
+
+  // ✅ လက်ရှိ Screen ပေါ်မှာ မြင်နေရတဲ့ လကို သိမ်းထားရန်
+  const [currentVisibleMonth, setCurrentVisibleMonth] = useState(format(new Date(), 'MMMM yyyy'));
 
   const filterOptions = [
     { id: 'all', label: t('all') },
@@ -61,10 +64,13 @@ export const HistoryScreen = () => {
     }
   };
 
-  const monthlySummary = useMemo(() => {
-    const now = new Date();
-    const start = startOfMonth(now);
-    const end = endOfMonth(now);
+  // ✅ Scroll ဆွဲတဲ့အခါ လက်ရှိလအလိုက် Summary ကို ပြောင်းလဲတွက်ချက်ပေးမည့် Logic
+  const activeMonthSummary = useMemo(() => {
+    // လက်ရှိမြင်နေရတဲ့ လရဲ့ start နဲ့ end ကို တွက်ပါတယ်
+    const parsedDate = parse(currentVisibleMonth, 'MMMM yyyy', new Date());
+    const start = startOfMonth(parsedDate);
+    const end = endOfMonth(parsedDate);
+
     return (transactions || []).reduce((acc, curr) => {
       const tDate = new Date(curr.transactionDate);
       if (isWithinInterval(tDate, { start, end })) {
@@ -73,7 +79,7 @@ export const HistoryScreen = () => {
       }
       return acc;
     }, { income: 0, expense: 0 });
-  }, [transactions]);
+  }, [transactions, currentVisibleMonth]);
 
   const filteredTransactions = useMemo(() => {
     return (transactions || [])
@@ -88,7 +94,6 @@ export const HistoryScreen = () => {
       .sort((a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime());
   }, [transactions, searchQuery, activeFilter]);
 
-  // ✅ လအလိုက်ရော ရက်အလိုက်ရော Group ဖွဲ့ခြင်း
   const groupedTransactions = useMemo(() => {
     const groups: any = {};
     const limitedData = filteredTransactions.slice(0, displayLimit);
@@ -120,10 +125,21 @@ export const HistoryScreen = () => {
     }));
   }, [filteredTransactions, displayLimit]);
 
+  // ✅ Viewable Items က ပြောင်းလဲသွားရင် (Scroll ဆွဲရင်) လကို update လုပ်ပေးမည့် function
+  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+    if (viewableItems.length > 0) {
+      // Screen ပေါ်မှာ မြင်နေရတဲ့ ထိပ်ဆုံး item ရဲ့ month title ကို ယူပါတယ်
+      const firstVisibleMonth = viewableItems[0].item.monthTitle;
+      if (firstVisibleMonth) {
+        setCurrentVisibleMonth(firstVisibleMonth);
+      }
+    }
+  }).current;
+
   return (
     <View style={[styles.container, { backgroundColor: theme === 'light' ? '#F4F7FE' : themeColors.background }]}>
       
-      {/* Passcode Modal */}
+      {/* Passcode Modal (No Change) */}
       <Modal visible={isPasscodeModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: themeColors.surface }]}>
@@ -150,7 +166,7 @@ export const HistoryScreen = () => {
         </View>
       </Modal>
 
-      {/* Options Menu Modal */}
+      {/* Options Menu Modal (No Change) */}
       <Modal visible={isMenuVisible} transparent animationType="slide">
         <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setIsMenuVisible(false)}>
           <View style={[styles.sheetContent, { backgroundColor: themeColors.surface }]}>
@@ -166,16 +182,17 @@ export const HistoryScreen = () => {
         </TouchableOpacity>
       </Modal>
 
-      {/* Header */}
+      {/* Header - Card summary ပြောင်းလဲသွားမည့်အပိုင်း */}
       <LinearGradient colors={themeColors.primaryGradient || ['#4A6CF7', '#6A85F1']} style={styles.header}>
-        <Text style={styles.navTitle}>{t('historyTitle')}</Text>
+        {/* လအမည်ကိုပါ header မှာ ပြချင်ရင် activeMonthSummary အပေါ်မှာ currentVisibleMonth ကို သုံးပြလို့ရပါတယ် */}
+        <Text style={styles.navTitle}>{currentVisibleMonth}</Text>
         <View style={styles.monthlySummaryRow}>
           <View style={styles.summaryBox}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
               <TrendingUp size={14} color="#4ADE80" />
               <Text style={styles.summaryLabel}>{t('income')}</Text>
             </View>
-            <Text style={styles.summaryValue}>+{monthlySummary.income.toLocaleString()}</Text>
+            <Text style={styles.summaryValue}>+{activeMonthSummary.income.toLocaleString()}</Text>
           </View>
           <View style={{ width: 1, height: '100%', backgroundColor: 'rgba(255,255,255,0.1)' }} />
           <View style={styles.summaryBox}>
@@ -183,13 +200,12 @@ export const HistoryScreen = () => {
               <TrendingDown size={14} color="#FB7185" />
               <Text style={styles.summaryLabel}>{t('expense')}</Text>
             </View>
-            <Text style={styles.summaryValue}>-{monthlySummary.expense.toLocaleString()}</Text>
+            <Text style={styles.summaryValue}>-{activeMonthSummary.expense.toLocaleString()}</Text>
           </View>
         </View>
       </LinearGradient>
 
       <View style={styles.content}>
-        {/* Search */}
         <View style={[styles.searchContainer, { backgroundColor: themeColors.surface }]}>
           <Search size={18} color="#999" />
           <TextInput
@@ -201,51 +217,36 @@ export const HistoryScreen = () => {
           />
         </View>
 
-        {/* Filter Chips */}
         <View style={styles.filterSection}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            
-              {filterOptions.map((opt) => {
-  const isActive = activeFilter === opt.id;
-  
-  return (
-    <TouchableOpacity
-      key={opt.id}
-      onPress={() => setActiveFilter(opt.id)}
-      style={styles.chipWrapper} 
-    >
-      {isActive ? (
-        // ✅ Active ဖြစ်နေရင် Gradient အရောင်ပြမယ်
-        <LinearGradient
-          colors={themeColors.primaryBtn || ['#6A5AE0', '#00D1FF']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={styles.chipGradient}
-        >
-          <Text style={[styles.chipText, { color: '#fff' }]}>{opt.label}</Text>
-        </LinearGradient>
-      ) : (
-        // ❌ Active မဟုတ်ရင် ရိုးရိုး Surface အရောင်ပဲပြမယ်
-        <View style={[styles.chipNormal, { backgroundColor: themeColors.surface }]}>
-          <Text style={[styles.chipText, { color: theme === 'dark' ? '#94A3B8' : '#666' }]}>
-            {opt.label}
-          </Text>
-        </View>
-      )}
-    </TouchableOpacity>
-  );
-})}
+            {filterOptions.map((opt) => {
+              const isActive = activeFilter === opt.id;
+              return (
+                <TouchableOpacity key={opt.id} onPress={() => setActiveFilter(opt.id)} style={styles.chipWrapper}>
+                  {isActive ? (
+                    <LinearGradient colors={themeColors.primaryBtn || ['#6A5AE0', '#00D1FF']} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.chipGradient}>
+                      <Text style={[styles.chipText, { color: '#fff' }]}>{opt.label}</Text>
+                    </LinearGradient>
+                  ) : (
+                    <View style={[styles.chipNormal, { backgroundColor: themeColors.surface }]}>
+                      <Text style={[styles.chipText, { color: theme === 'dark' ? '#94A3B8' : '#666' }]}>{opt.label}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
         </View>
 
-        {/* Main List */}
+        {/* Main List - onViewableItemsChanged ထည့်သွင်းထားပါတယ် */}
         <FlatList
           data={groupedTransactions}
           keyExtractor={(item) => item.monthTitle}
           onEndReached={() => setDisplayLimit(prev => prev + 10)}
+          onViewableItemsChanged={onViewableItemsChanged} // ✅ Scroll monitoring
+          viewabilityConfig={{ itemVisiblePercentThreshold: 50 }} // ✅ ၅၀ ရာခိုင်နှုန်း မြင်ရရင် လကို update လုပ်မယ်
           renderItem={({ item: monthGroup, index }) => (
             <View>
-              {/* Monthly Header Divider */}
               <View style={styles.monthDivider}>
                 <Text style={styles.monthText}>{monthGroup.monthTitle}</Text>
                 <View style={styles.monthTotalBox}>
@@ -254,7 +255,6 @@ export const HistoryScreen = () => {
                 </View>
               </View>
 
-              {/* Days in this month */}
               {monthGroup.days.map((dayGroup: any) => (
                 <View key={dayGroup.date} style={styles.dateBlock}>
                   <View style={styles.dateHeader}>
@@ -288,7 +288,6 @@ export const HistoryScreen = () => {
                 </View>
               ))}
 
-              {/* ✅ မျဉ်းလေး တားပေးမည့်အပိုင်း (အလယ်မှာပဲ ပေါ်စေရန်) */}
               {index < groupedTransactions.length - 1 && (
                 <View style={[styles.monthSeparator, { backgroundColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.481)' : 'rgba(0, 0, 0, 0.33)' }]} />
               )}

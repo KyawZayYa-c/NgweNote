@@ -30,7 +30,7 @@ export const LoginScreen = () => {
 
   const handleAction = () => {
     if (isEditMode) {
-      Alert.alert("Update Successful", "စာရင်းကို ပြင်ဆင်ပြီးပါပြီ");
+      Alert.alert("Update Successful");
       navigation.goBack();
     } else {
       loginAsGuest();
@@ -77,7 +77,6 @@ export const LoginScreen = () => {
         )}
 
         <View style={styles.logoRow}>
-          {/* ✅ <div> အစား <View> ကို ပြောင်းလဲထားသည် */}
           <View style={styles.logoIcon}>
             {isEditMode ? (
               <Edit3 color={themeColors.primary} size={35} />

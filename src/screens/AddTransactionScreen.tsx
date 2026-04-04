@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useThemeStore } from '../context/useThemeStore';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, Save, Tag, Calendar, Edit3 } from 'lucide-react-native';
+import { ChevronLeft, Save, Tag, Calendar, Edit3, Plus, X, Lock } from 'lucide-react-native';
 import { CategoryModal } from '../components/CategoryModal';
 import { useExpenseStore } from '../context/useExpenseStore';
 
@@ -28,17 +28,18 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
   const [note, setNote] = useState('');
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
+  
+  // ✅ Batch Entry State
+  const [batchItems, setBatchItems] = useState<any[]>([]);
 
-  // ✅ Form ကို Reset ချပေးသည့် Function
+  const isBatching = batchItems.length > 0; // Batch ထဲမှာ item ရှိ/မရှိ စစ်သည်
+
   const resetForm = () => {
-    setType('expense');
     setAmount('');
     setSelectedCat(null);
     setNote('');
-    setDate(new Date());
   };
 
-  // ✅ 1. Edit Mode ဖြစ်ပါက Data များကို Form ထဲသို့ ထည့်ပေးခြင်း
   useEffect(() => {
     if (isEditMode && editData) {
       setType(editData.type);
@@ -47,42 +48,14 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
       setNote(editData.title || '');
       setDate(new Date(editData.transactionDate));
     }
-  }, [editData, isEditMode]); // editData ပြောင်းလဲမှုရှိတိုင်း အလုပ်လုပ်မည်
+  }, [editData, isEditMode]);
 
-  // ✅ 2. Screen ကနေ ထွက်သွားရင် သို့မဟုတ် အသစ်ထည့်ရန် ဝင်လာရင် Reset လုပ်ခြင်း
-  useEffect(() => {
-    const focusUnsubscribe = navigation.addListener('focus', () => {
-      if (!route.params?.editData) {
-        resetForm();
-      }
-    });
-
-    const blurUnsubscribe = navigation.addListener('blur', () => {
-      // Screen ကနေ ထွက်သွားရင် params တွေကို ရှင်းပစ်မယ် (အရေးကြီးသည်)
-      navigation.setParams({ editData: undefined });
-    });
-
-    return () => {
-      focusUnsubscribe();
-      blurUnsubscribe();
-    };
-  }, [navigation, route.params?.editData]);
-
-  // --- Balance Calculation ---
-  const totalIncome = transactions
-    .filter(tr => tr.type === 'income')
-    .reduce((sum, tr) => sum + tr.amount, 0);
-
-  const totalExpense = transactions
-    .filter(tr => tr.type === 'expense')
-    .reduce((sum, tr) => sum + tr.amount, 0);
-
+  const totalIncome = transactions.filter(tr => tr.type === 'income').reduce((sum, tr) => sum + tr.amount, 0);
+  const totalExpense = transactions.filter(tr => tr.type === 'expense').reduce((sum, tr) => sum + tr.amount, 0);
   const baseBalance = totalIncome - totalExpense;
   
-  // Edit mode မှာဆိုရင် လက်ရှိပြင်နေတဲ့ ပမာဏကို balance ထဲ ပြန်ပေါင်းထည့်ပြီးမှ တွက်ရမယ်
-  const currentBalance = isEditMode && editData.type === 'expense' 
-    ? baseBalance + editData.amount 
-    : baseBalance;
+  const batchTotalExpense = batchItems.filter(i => i.type === 'expense').reduce((sum, i) => sum + i.amount, 0);
+  const currentBalance = (isEditMode && editData.type === 'expense' ? baseBalance + editData.amount : baseBalance) - batchTotalExpense;
 
   const numAmount = parseFloat(amount) || 0;
 
@@ -91,39 +64,64 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
     if (selectedDate) setDate(selectedDate);
   };
 
-  const handleSave = async () => {
-    const finalAmount = parseFloat(amount) || 0;
-
-    if (!amount || finalAmount <= 0) {
+  const handleAddToBatch = () => {
+    if (!amount || numAmount <= 0) {
       Alert.alert(t('warning'), t('enterAmount'));
       return;
     }
-
     if (type === 'expense' && !selectedCat) {
       Alert.alert(t('warning'), t('selectCategory'));
       return;
     }
-
-    if (type === 'expense' && finalAmount > currentBalance) {
+    if (type === 'expense' && numAmount > currentBalance) {
       Alert.alert(t('warning'), t('insufficientBalance'));
       return;
     }
 
-    try {
-      const transactionPayload = {
-        title: note || (type === 'income' ? t('income') : selectedCat.name),
-        amount: finalAmount,
-        category: type === 'income' ? 'Income' : selectedCat.name,
+    const newItem = {
+      id: Date.now().toString(),
+      title: note || (type === 'income' ? t('income') : selectedCat.name),
+      amount: numAmount,
+      category: type === 'income' ? 'Income' : selectedCat.name,
+      type: type,
+      transactionDate: date.toISOString(),
+    };
+
+    setBatchItems([...batchItems, newItem]);
+    resetForm();
+  };
+
+  const removeFromBatch = (id: string) => {
+    setBatchItems(batchItems.filter(item => item.id !== id));
+  };
+
+  const handleSaveAll = async () => {
+    const itemsToSave = [...batchItems];
+    
+    if (amount && numAmount > 0) {
+      itemsToSave.push({
+        title: note || (type === 'income' ? t('income') : selectedCat?.name),
+        amount: numAmount,
+        category: type === 'income' ? 'Income' : selectedCat?.name,
         type: type,
         transactionDate: date.toISOString(),
-      };
+      });
+    }
 
+    if (itemsToSave.length === 0) {
+      Alert.alert(t('warning'), t('enterAmount'));
+      return;
+    }
+
+    try {
       if (isEditMode) {
-        await updateTransaction(editData.id, transactionPayload);
+        await updateTransaction(editData.id, itemsToSave[0]);
       } else {
-        await addTransaction(transactionPayload);
+        for (const item of itemsToSave) {
+          await addTransaction(item);
+        }
       }
-      
+      setBatchItems([]);
       resetForm();
       navigation.goBack();
     } catch (error) {
@@ -141,7 +139,7 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
       <LinearGradient colors={themeColors.primaryGradient} style={styles.header}>
         <View style={styles.headerContent}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            {/* <ChevronLeft color="#fff" size={28} /> */}
+            <ChevronLeft color="#fff" size={28} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
             {isEditMode ? "ပြင်ဆင်ရန်" : t('createRecord')}
@@ -150,36 +148,32 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
         </View>
       </LinearGradient>
 
-
-      
-
       <ScrollView contentContainerStyle={styles.formContainer} keyboardShouldPersistTaps="handled">
         
+        {/* ✅ Type Switcher - Disabled if Batching or Editing */}
         <View style={styles.switcherContainer}>
-          <View style={[
-            styles.switcherBackground, 
-            { backgroundColor: theme === 'dark' ? '#2A2D37' : '#D1D5DB' }
-          ]}>
+          <View style={[styles.switcherBackground, { backgroundColor: theme === 'dark' ? '#2A2D37' : '#D1D5DB' }]}>
             <TouchableOpacity 
-              onPress={() => !isEditMode && setType('expense')} 
-              disabled={isEditMode}
+              onPress={() => setType('expense')} 
+              disabled={isEditMode || isBatching} 
               style={[styles.switchBtn, type === 'expense' && styles.activeExpense]}
             >
-              <Text style={[styles.switchText, type === 'expense' ? { color: '#fff' } : { color: '#4B5563' }]}>
-                {t('expense')}
-              </Text>
+              <Text style={[styles.switchText, type === 'expense' ? { color: '#fff' } : { color: '#4B5563' }]}>{t('expense')}</Text>
             </TouchableOpacity>
             <TouchableOpacity 
-              onPress={() => !isEditMode && setType('income')} 
-              disabled={isEditMode}
+              onPress={() => setType('income')} 
+              disabled={isEditMode || isBatching} 
               style={[styles.switchBtn, type === 'income' && styles.activeIncome]}
             >
-              <Text style={[styles.switchText, type === 'income' ? { color: '#fff' } : { color: '#4B5563' }]}>
-                {t('income')}
-              </Text>
+              <Text style={[styles.switchText, type === 'income' ? { color: '#fff' } : { color: '#4B5563' }]}>{t('income')}</Text>
             </TouchableOpacity>
           </View>
-          {isEditMode && <Text style={styles.lockText}>* ပြင်ဆင်နေချိန်တွင် အမျိုးအစားပြောင်း၍မရပါ</Text>}
+          {(isEditMode || isBatching) && (
+            <View style={styles.lockInfo}>
+              <Lock size={12} color="#9CA3AF" />
+              <Text style={styles.lockText}> {isEditMode ? t('editLock') : t('batchLockType')}</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.inputWrapper}>
@@ -187,20 +181,20 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
           <View style={[styles.inputBox, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
             <Text style={[styles.currencySymbol, { color: themeColors.text.primary }]}>Ks</Text>
             <TextInput 
-  style={[styles.amountInput, { color: themeColors.text.primary }]}
-  value={amount}
-  placeholder="0"
-  placeholderTextColor={theme === 'dark' ? '#9CA3AF' : '#6B7280'} 
-  keyboardType="decimal-pad"
-  onChangeText={(text) => setAmount(text.replace(/[^0-9.]/g, ''))}
-/>
+              style={[styles.amountInput, { color: themeColors.text.primary }]}
+              value={amount}
+              placeholder="0"
+              placeholderTextColor={theme === 'dark' ? '#9CA3AF' : '#6B7280'} 
+              keyboardType="decimal-pad"
+              onChangeText={(text) => setAmount(text.replace(/[^0-9.]/g, ''))}
+            />
           </View>
         </View>
 
         <View style={styles.row}>
           <TouchableOpacity 
             style={[styles.iconBox, { backgroundColor: themeColors.surface, borderColor: themeColors.border }, type === 'income' && { opacity: 0.6 }]} 
-            onPress={() => type === 'expense' && setCatModal(true)}
+            onPress={() => type === 'expense' && setCatModal(true)} 
             disabled={type === 'income'}
           >
             <Tag size={18} color={themeColors.primary} />
@@ -209,47 +203,65 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
             </Text>
           </TouchableOpacity>
 
+          {/* ✅ Date Picker - Disabled if Batching */}
           <TouchableOpacity 
-            style={[styles.iconBox, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]} 
-            onPress={() => setShowDatePicker(true)}
+            style={[styles.iconBox, { backgroundColor: themeColors.surface, borderColor: themeColors.border }, isBatching && { opacity: 0.6 }]} 
+            onPress={() => !isBatching && setShowDatePicker(true)}
+            disabled={isBatching}
           >
-            <Calendar size={18} color={themeColors.primary} />
+            {isBatching ? <Lock size={18} color={themeColors.text.secondary} /> : <Calendar size={18} color={themeColors.primary} />}
             <Text style={[styles.boxText, { color: themeColors.text.primary }]}>
               {date.toDateString() === new Date().toDateString() ? t('today') : date.toLocaleDateString()}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {showDatePicker && (
-          <DateTimePicker value={date} mode="date" display="default" onChange={onDateChange} maximumDate={new Date()} />
-        )}
+        {showDatePicker && <DateTimePicker value={date} mode="date" display="default" onChange={onDateChange} maximumDate={new Date()} />}
 
         <View style={styles.inputWrapper}>
           <Text style={[styles.label, { color: themeColors.text.secondary }]}>{t('note')}</Text>
           <View style={[styles.noteBox, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
             <Edit3 size={18} color={themeColors.text.secondary} />
-            <TextInput 
-  style={[styles.noteInput, { color: themeColors.text.primary }]}
-  placeholder={t('writeNote')}
-  placeholderTextColor={theme === 'dark' ? '#9CA3AF' : '#6B7280'}
-  multiline
-  value={note}
-  onChangeText={setNote}
-/>
+            <TextInput style={[styles.noteInput, { color: themeColors.text.primary }]} placeholder={t('writeNote')} placeholderTextColor={theme === 'dark' ? '#9CA3AF' : '#6B7280'} multiline value={note} onChangeText={setNote} />
           </View>
         </View>
 
-        <TouchableOpacity 
-          onPress={handleSave}
-          disabled={type === 'expense' && numAmount > currentBalance}
-        >
-          <LinearGradient colors={themeColors.primaryBtn || ['#6A5AE0', '#00D1FF']} style={[styles.saveBtn, { backgroundColor: themeColors.primary }, (type === 'expense' && numAmount > currentBalance) && { opacity: 0.5 }]}
-          >
-          <Save color="#fff" size={20} />
-          <Text style={styles.saveText}>
-            {type === 'expense' && numAmount > currentBalance ? t('insufficientBalance') : (isEditMode ? t('update') : t('save'))}
+        {/* ✅ Add to List Button - Rename for clarity */}
+        {!isEditMode && (
+          <TouchableOpacity onPress={handleAddToBatch} style={[styles.addToListBtn, { borderColor: themeColors.primary }]}>
+            <Plus size={20} color={themeColors.primary} />
+            <Text style={[styles.addToListText, { color: themeColors.primary }]}>{t('addAnother') || 'Add Another Item'}</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* ✅ Horizontal Batch List Preview */}
+        {isBatching && (
+          <View style={styles.batchContainer}>
+            <Text style={[styles.batchTitle, { color: themeColors.text.secondary }]}>{t('preview')} ({batchItems.length})</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.batchScroll}>
+              {batchItems.map((item) => (
+                <TouchableOpacity key={item.id} style={[styles.batchCard, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]} onPress={() => removeFromBatch(item.id)}>
+                  <View style={styles.batchCardHeader}>
+                    <Text style={[styles.batchAmount, { color: item.type === 'expense' ? '#EF4444' : '#10B981' }]}>
+                      {item.type === 'expense' ? '-' : '+'}{item.amount}
+                    </Text>
+                    <X size={14} color="#9CA3AF" />
+                  </View>
+                  <Text style={[styles.batchNote, { color: themeColors.text.primary }]} numberOfLines={1}>{item.title}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* ✅ Save All Button */}
+        <TouchableOpacity onPress={handleSaveAll} disabled={type === 'expense' && numAmount > currentBalance}>
+          <LinearGradient colors={themeColors.primaryBtn || ['#6A5AE0', '#00D1FF']} style={[styles.saveBtn, (type === 'expense' && numAmount > currentBalance) && { opacity: 0.5 }]}>
+            <Save color="#fff" size={20} />
+            <Text style={styles.saveText}>
+              {isBatching ? `${t('saveAll') || 'Save All'} (${batchItems.length + (amount ? 1 : 0)})` : (isEditMode ? t('update') : t('save'))}
             </Text>
-            </LinearGradient>
+          </LinearGradient>
         </TouchableOpacity>
       </ScrollView>
 
@@ -258,31 +270,40 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
   );
 };
 
-// Styles အပိုင်းက အရင်အတိုင်း ထားလိုက်ပါ...
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { height: 110, justifyContent: 'flex-end', paddingBottom: 20, borderBottomLeftRadius: 35, borderBottomRightRadius: 35 },
+  header: { height: 100, justifyContent: 'flex-end', paddingBottom: 20, borderBottomLeftRadius: 35, borderBottomRightRadius: 35 },
   headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20 },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
   backBtn: { padding: 4 },
-  formContainer: { paddingHorizontal: 25, paddingTop: 25 },
-  switcherContainer: { marginBottom: 25, alignItems: 'center' },
-  switcherBackground: { flexDirection: 'row', padding: 4, borderRadius: 22, width: '100%', elevation: 2 },
+  formContainer: { paddingHorizontal: 25, paddingTop: 25, paddingBottom: 60 }, // ✅ Added more padding for screen fit
+  switcherContainer: { marginBottom: 10, alignItems: 'center' },
+  switcherBackground: { flexDirection: 'row', padding: 4, borderRadius: 22, width: '100%' },
   switchBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 18 },
-  activeExpense: { backgroundColor: '#EF4444', elevation: 4 },
-  activeIncome: { backgroundColor: '#10B981', elevation: 4 },
+  activeExpense: { backgroundColor: '#EF4444' },
+  activeIncome: { backgroundColor: '#10B981' },
   switchText: { fontSize: 14, fontWeight: '700' },
-  lockText: { fontSize: 10, marginTop: 8, color: '#9CA3AF', fontWeight: '500' },
-  inputWrapper: { marginBottom: 20 }, 
-  label: { fontSize: 11, marginBottom: 8, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
+  lockInfo: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  lockText: { fontSize: 10, color: '#9CA3AF', fontWeight: '500' },
+  inputWrapper: { marginBottom: 18 }, 
+  label: { fontSize: 11, marginBottom: 6, marginTop: 4, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
   inputBox: { flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 20, borderWidth: 1.5 },
   currencySymbol: { fontSize: 20, marginRight: 10, fontWeight: '700' },
   amountInput: { flex: 1, fontSize: 24, fontWeight: '700' },
-  row: { flexDirection: 'row', gap: 12, marginBottom: 20 },
+  row: { flexDirection: 'row', gap: 12},
   iconBox: { flex: 1, flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 20, gap: 10, borderWidth: 1.5 },
   boxText: { fontSize: 14, fontWeight: '600' },
-  noteBox: { flexDirection: 'row', padding: 15, borderRadius: 20, borderWidth: 1.5, minHeight: 100 },
+  noteBox: { flexDirection: 'row', padding: 15, borderRadius: 20, borderWidth: 1.5, minHeight: 80 },
   noteInput: { flex: 1, marginLeft: 10, fontSize: 15, textAlignVertical: 'top' },
-  saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 60, borderRadius: 20, gap: 12, marginTop: 10, elevation: 8 },
-  saveText: { color: '#fff', fontSize: 16, fontWeight: '800' }
+  addToListBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 12, borderRadius: 15, borderStyle: 'dashed', borderWidth: 1.5, marginBottom: 20, gap: 8 },
+  addToListText: { fontWeight: '700', fontSize: 14 },
+  batchContainer: { marginBottom: 20 },
+  batchTitle: { fontSize: 12, fontWeight: '700', marginBottom: 8, textTransform: 'uppercase' },
+  batchScroll: { flexDirection: 'row' },
+  batchCard: { width: 120, padding: 12, borderRadius: 15, marginRight: 10, borderWidth: 1 },
+  batchCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  batchAmount: { fontSize: 14, fontWeight: '800' },
+  batchNote: { fontSize: 11, fontWeight: '600' },
+  saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 60, borderRadius: 20, gap: 12, marginTop: 0, elevation: 8 },
+  saveText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });

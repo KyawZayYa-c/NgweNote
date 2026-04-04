@@ -1,7 +1,7 @@
 // src/theme/colors.ts
 
 const common = {
-  primary: '#6A5AE0',
+  primary: '#00D1FF',
   secondary: '#00D1FF',
   accent: '#FF6B6B',
   income: '#00D1FF',

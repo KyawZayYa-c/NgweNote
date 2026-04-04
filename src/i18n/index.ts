@@ -13,6 +13,8 @@ const resources = {
       income: "Income",
       expense: "Expense",
       recent: "Recent Activity",
+      todayActivity: "Today Activity",
+      noEntryToday: "No entries for today",
       // Login Screen
       chooseOption: "Choose an option",
       loginGuest: "Log in as Guest",
@@ -37,7 +39,11 @@ const resources = {
   enterAmount: "Please enter a valid amount",
   selectCategory: "Please select a category",
   insufficientBalance: "Insufficient Balance",
-  saveError: "Error saving transaction",
+      saveError: "Error saving transaction",
+  addAnother: "Add Another",
+  saveAll: "Save All",
+  batchLockType: "Cannot change type while batch adding",
+  editLock: "Locked during edit mode",
 
 
     home: "Home",
@@ -64,6 +70,14 @@ const resources = {
       editMode: "Edit Mode",
       editNavNote: "Redirecting to edit form...",
       noRecords: "No records found",
+
+
+  totalIncome: "Total Income",
+  totalExpense: "Total Expense",
+  ratioTitle: "Income vs Expense Ratio",
+  topExpenses: "Top 5 Expenses",
+  saveAsImage: "Save Chart as Image",
+  imageSaved: "Image has been saved to your gallery.",
     }
   },
   mm: {
@@ -76,6 +90,8 @@ const resources = {
       income: "ဝင်ငွေ",
       expense: "အသုံးစရိတ်",
       recent: "လတ်တလော မှတ်တမ်းများ",
+      todayActivity: "ယနေ့လှုပ်ရှားမှု",
+      noEntryToday: "ဒီနေ့အတွက် မှတ်တမ်းတင်ရန်",
       // Login Screen
       chooseOption: "အသုံးပြုရန် ရွေးချယ်ပါ",
       loginGuest: "ဧည့်သည်အဖြစ် ဝင်မည်",
@@ -102,6 +118,10 @@ const resources = {
       selectCategory: "အမျိုးအစား ရွေးချယ်ပေးပါ",
       insufficientBalance: "လက်ကျန်ငွေ မလုံလောက်ပါ",
       saveError: "သိမ်းဆည်းရာတွင် အမှားအယွင်းရှိပါသည်",
+      addAnother: "နောက်တစ်ခုထည့်မည်",
+      saveAll: "အားလုံးသိမ်းမည်",
+      batchLockType: "စာရင်းအများကြီးသွင်းနေချိန်တွင် အမျိုးအစားပြောင်း၍မရပါ",
+      editLock: "ပြင်ဆင်နေချိန်တွင် ပြောင်းလဲ၍မရပါ",
 
 
     home: "ပင်မ",
@@ -125,6 +145,15 @@ searchPlaceholder: "မှတ်စုဖြင့် ရှာဖွေရန�
       editMode: "ပြင်ဆင်ရန်",
       editNavNote: "ပြင်ဆင်ရန် Form သို့ သွားပါမည်",
       noRecords: "မှတ်တမ်းများ မရှိသေးပါ",
+
+
+    
+  totalIncome: "စုစုပေါင်းဝင်ငွေ",
+  totalExpense: "စုစုပေါင်းအသုံးစရိတ်",
+  ratioTitle: "ဝင်ငွေနှင့် အသုံးစရိတ် အချိုး",
+  topExpenses: "အများဆုံး အသုံးစရိတ် (၅) ခု",
+  saveAsImage: "ဇယားကို ဓာတ်ပုံသိမ်းရန်",
+  imageSaved: "ဓာတ်ပုံကို Gallery ထဲသို့ သိမ်းဆည်းပြီးပါပြီ။",
     }
   }
 };

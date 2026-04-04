@@ -1,13 +1,12 @@
-
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, StatusBar, FlatList, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useAuthStore } from '../context/useAuthStore';
 import { useThemeStore } from '../context/useThemeStore';
-import { useExpenseStore } from '../context/useExpenseStore'; // Store ထည့်မယ်
+import { useExpenseStore } from '../context/useExpenseStore';
 import { fontSize } from '../theme/fontSize';
-import { LogOut, Languages, Wallet, TrendingUp, TrendingDown } from 'lucide-react-native';
+import { LogOut, Languages, Wallet, TrendingUp, TrendingDown, PlusCircle } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 
 export const HomeScreen = () => {
@@ -16,29 +15,47 @@ export const HomeScreen = () => {
   const themeColors = getColors();
   const { t } = useTranslation();
 
-  // Store ကနေ data တွေ ယူမယ်
   const { transactions, fetchTransactions, isLoading } = useExpenseStore();
 
   useEffect(() => {
     fetchTransactions();
   }, []);
 
-  // --- တွက်ချက်မှုပိုင်း (Balance, Income, Expense) ---
-  const totalIncome = (transactions || [])
+  // ✅ စာရင်းအားလုံးအတွက် တွက်ချက်ခြင်း (Filter မလုပ်တော့ပါ)
+  const allTransactions = transactions || [];
+  
+  const totalIncome = allTransactions
     .filter(tr => tr.type === 'income')
     .reduce((sum, tr) => sum + tr.amount, 0);
 
-  const totalExpense = (transactions || [])
+  const totalExpense = allTransactions
     .filter(tr => tr.type === 'expense')
     .reduce((sum, tr) => sum + tr.amount, 0);
 
   const currentBalance = totalIncome - totalExpense;
 
+  // ✅ စာရင်းတစ်ခုချင်းစီကို Card အနေနဲ့ ပြသရန် Render Function
+  const renderItem = ({ item }: { item: any }) => (
+    <View style={[styles.itemCard, { backgroundColor: themeColors.surface }]}>
+      <View style={styles.itemInfo}>
+        <Text style={[styles.itemTitle, { color: themeColors.text.primary }]}>{item.title}</Text>
+        <Text style={styles.itemDate}>
+          {new Date(item.transactionDate).toLocaleDateString()} • {new Date(item.transactionDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+        </Text>
+      </View>
+      <Text style={[
+        styles.itemAmount, 
+        { color: item.type === 'income' ? '#22C55E' : '#FF6B6B' }
+      ]}>
+        {item.type === 'income' ? '+' : '-'} {item.amount.toLocaleString()} Ks
+      </Text>
+    </View>
+  );
+
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <StatusBar barStyle="light-content" />
       
-      {/* Header Section */}
       <LinearGradient colors={themeColors.primaryGradient} style={styles.headerGradient}>
         <View style={styles.topBar}>
           <View style={styles.titleArea}>
@@ -56,12 +73,11 @@ export const HomeScreen = () => {
           </View>
         </View>
 
-        {/* Balance Card */}
         <BlurView intensity={theme === 'dark' ? 10 : 30} tint={theme === 'dark' ? 'dark' : 'light'} style={styles.balanceCardWrapper}>
           <View style={styles.balanceCard}>
             <View style={styles.balanceHeader}>
               <View style={styles.iconBg}><Wallet color="#fff" size={24} /></View>
-              <Text style={styles.balanceLabel}>{t('balance')}</Text>
+              <Text style={styles.balanceLabel}>{t('balance')}</Text> 
             </View>
             <Text style={styles.balanceAmount}>{currentBalance.toLocaleString()} <Text style={{fontSize: 18}}>Ks</Text></Text>
             
@@ -80,37 +96,27 @@ export const HomeScreen = () => {
         </BlurView>
       </LinearGradient>
 
-      {/* Transactions List Section */}
       <View style={styles.contentArea}>
-          <Text style={[styles.sectionTitle, {color: themeColors.text.primary}]}>{t('recent')}</Text>
+          <Text style={[styles.sectionTitle, {color: themeColors.text.primary}]}>
+            {t('recent')} 
+          </Text>
           
           {isLoading ? (
             <ActivityIndicator size="small" color={themeColors.primary} style={{ marginTop: 20 }} />
           ) : (
             <FlatList
-              data={transactions || []}
-              keyExtractor={(item) => item.id}
+              data={allTransactions}
+              keyExtractor={(item) => item.id.toString()}
               showsVerticalScrollIndicator={false}
-              renderItem={({ item }) => (
-                <View style={[styles.itemCard, { backgroundColor: themeColors.surface }]}>
-                  <View style={styles.itemInfo}>
-                    <Text style={[styles.itemTitle, { color: themeColors.text.primary }]}>{item.title}</Text>
-                    <Text style={styles.itemDate}>{new Date(item.transactionDate).toLocaleDateString()}</Text>
-                  </View>
-                  <Text style={[
-                    styles.itemAmount, 
-                    { color: item.type === 'income' ? '#22C55E' : '#FF6B6B' }
-                  ]}>
-                    {item.type === 'income' ? '+' : '-'} {item.amount.toLocaleString()} Ks
-                  </Text>
-                </View>
-              )}
+              renderItem={renderItem}
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
-                   <Text style={{color: themeColors.text.secondary}}>မှတ်တမ်းမရှိသေးပါ။</Text>
+                   <PlusCircle color={themeColors.text.secondary} size={48} strokeWidth={1.5} />
+                   <Text style={[styles.emptyText, {color: themeColors.text.secondary}]}>
+                     {t('noRecords')}
+                   </Text>
                 </View>
               }
-              // List ရဲ့ အောက်ဆုံးမှာ ပိတ်မသွားအောင် padding နည်းနည်းထည့်ထားမယ်
               contentContainerStyle={{ paddingBottom: 100 }} 
             />
           )}
@@ -118,7 +124,6 @@ export const HomeScreen = () => {
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: { flex: 1 },
   headerGradient: { 
@@ -147,8 +152,9 @@ const styles = StyleSheet.create({
   separator: { width: 1, height: '100%', backgroundColor: 'rgba(255,255,255,0.2)' },
   contentArea: { flex: 1, padding: 20, marginTop: 10 },
   sectionTitle: { fontSize: fontSize.lg, fontWeight: 'bold', marginBottom: 15 },
-  emptyContainer: { alignItems: 'center', marginTop: 40 },
-  // Transaction Item Styles
+  emptyContainer: { alignItems: 'center', marginTop: 60, gap: 10 },
+  emptyText: { fontSize: 18, fontWeight: '600', textAlign: 'center', marginTop: 10 },
+  emptySubText: { fontSize: 13, color: '#999', textAlign: 'center' },
   itemCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -156,7 +162,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 20,
     marginBottom: 12,
-    // Shadow for iOS & Android
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,

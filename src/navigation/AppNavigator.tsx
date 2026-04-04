@@ -14,16 +14,14 @@ import { fontSize } from '../theme/fontSize';
 import { Wallet, History as HistoryIcon, Settings, Plus, PieChart } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { HistoryScreen } from '../screens/HistoryScreen';
+import { AnalyticsScreen } from '../screens/AnalyticsScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Custom Plus Button Component
 const CustomTabBarButton = ({ children, onPress }: any) => {
   const { getColors } = useThemeStore();
   const themeColors = getColors();
-
-  // gradientColors ကို fallback (||) ခံထားရင် ဘယ်တော့မှ crash မဖြစ်တော့ပါဘူး
   const gradientColors = themeColors.primaryGradient || ['#6A5AE0', '#00D1FF'];
 
   return (
@@ -73,7 +71,7 @@ function TabNavigator() {
       })}
     >
       <Tab.Screen name="HomeTab" component={HomeScreen} options={{ tabBarLabel: t('home') }} />
-      <Tab.Screen name="Analytics" component={HomeScreen} options={{ tabBarLabel: t('analytics') }} />
+      <Tab.Screen name="Analytics" component={AnalyticsScreen} options={{ tabBarLabel: t('analytics') }} />
       
       <Tab.Screen 
         name="AddTransaction" 
