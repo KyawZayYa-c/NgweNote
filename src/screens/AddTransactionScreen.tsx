@@ -88,6 +88,9 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
     };
 
     setBatchItems([...batchItems, newItem]);
+    if (isEditMode) {
+    navigation.setParams({ editData: undefined });
+  }
     resetForm();
   };
 
@@ -116,6 +119,7 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
     try {
       if (isEditMode) {
         await updateTransaction(editData.id, itemsToSave[0]);
+        navigation.setParams({ editData: undefined });
       } else {
         for (const item of itemsToSave) {
           await addTransaction(item);

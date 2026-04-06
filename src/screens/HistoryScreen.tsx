@@ -54,7 +54,7 @@ export const HistoryScreen = () => {
       } else if (pendingAction?.type === 'delete') {
         await deleteTransaction(pendingAction.id);
         setIsPasscodeModal(false);
-        Alert.alert(t('success'), t('deletedSuccess'));
+        // Alert.alert(t('success'), t('deletedSuccess'));
       }
       setPasscode('');
       setPendingAction(null);
@@ -130,11 +130,13 @@ export const HistoryScreen = () => {
     if (viewableItems.length > 0) {
       // Screen ပေါ်မှာ မြင်နေရတဲ့ ထိပ်ဆုံး item ရဲ့ month title ကို ယူပါတယ်
       const firstVisibleMonth = viewableItems[0].item.monthTitle;
-      if (firstVisibleMonth) {
-        setCurrentVisibleMonth(firstVisibleMonth);
-      }
+      // ✅ လက်ရှိလနဲ့ မတူမှသာ State ကို update လုပ်ပါ (ဒါဆိုရင် Screen မတုန်တော့ပါ)
+      if (firstVisibleMonth && firstVisibleMonth !== currentVisibleMonth) {
+      setCurrentVisibleMonth(firstVisibleMonth);
+    }
     }
   }).current;
+
 
   return (
     <View style={[styles.container, { backgroundColor: theme === 'light' ? '#F4F7FE' : themeColors.background }]}>

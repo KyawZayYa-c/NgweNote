@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from './useAuthStore';
 
-// ၁။ Transaction တစ်ခုချင်းစီမှာ ပါမယ့် Data Structure
+// ၁။ Transaction Structure (အစ်ကို့အတိုင်းပဲ ထားပါတယ်)
 export interface Transaction {
   id: string;
   userId: string;
@@ -15,12 +15,14 @@ export interface Transaction {
   updatedAt?: string;
 }
 
-// ၂။ Store တစ်ခုလုံးရဲ့ State (ဒေတာ) နဲ့ Action (လုပ်ဆောင်ချက်) များ
+// ၂။ Store Interface (Recovery နဲ့ ClearData function တွေ ထပ်တိုးလိုက်ပါတယ်)
 interface ExpenseState {
   transactions: Transaction[];
+  recoveryTrash: Transaction[]; // ဖျက်လိုက်တာတွေ ခေတ္တသိမ်းရန်
   isLoading: boolean;
-  userPasscode: string; // Passcode သိမ်းရန်
-  
+  userPasscode: string;
+  adminNoti: string | null; // ထပ်တိုးရန်
+  setAdminNoti: (message: string | null) => void; // ထပ်တိုးရန်
   fetchTransactions: () => Promise<void>;
   addTransaction: (t: { 
     title: string; 
@@ -31,41 +33,46 @@ interface ExpenseState {
   }) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   updateTransaction: (id: string, updatedData: Partial<Transaction>) => Promise<void>;
-  setPasscode: (code: string) => Promise<void>; // Passcode အသစ်သတ်မှတ်ရန်
+  setPasscode: (code: string) => Promise<void>;
+  clearAllData: () => Promise<void>; // Data အကုန်ဖျက်ရန်
 }
 
 const STORAGE_KEY = '@local_data';
 const PASSCODE_KEY = '@user_passcode';
+const RECOVERY_KEY = '@recovery_data'; // Trash အတွက် Key
 
 export const useExpenseStore = create<ExpenseState>((set, get) => ({
+  
   transactions: [],
+  recoveryTrash: [],
   isLoading: false,
-  userPasscode: '1234', // Default အနေနဲ့ ၁၂၃၄ ထားပေးထားပါတယ်
+  userPasscode: '1234',
+  adminNoti: null,
+  setAdminNoti: (message: string | null) => set({ adminNoti: message }),
 
-  // စာရင်းများရော၊ Passcode ကိုပါ ဆွဲယူခြင်း
   fetchTransactions: async () => {
     set({ isLoading: true });
     try {
       const { isGuest } = useAuthStore.getState();
       
-      // Passcode ကိုအရင်ဆွဲထုတ်မယ်
       const storedPass = await AsyncStorage.getItem(PASSCODE_KEY);
+      const storedTrash = await AsyncStorage.getItem(RECOVERY_KEY);
+      
       if (storedPass) set({ userPasscode: storedPass });
+      if (storedTrash) set({ recoveryTrash: JSON.parse(storedTrash) });
 
       if (isGuest) {
         const data = await AsyncStorage.getItem(STORAGE_KEY);
         const parsedData = data ? JSON.parse(data) : [];
-        set({ transactions: parsedData, isLoading: false });
-      } else {
-        set({ transactions: [], isLoading: false });
+        set({ transactions: parsedData });
       }
     } catch (error) {
       console.error("Fetch error:", error);
-      set({ transactions: [], isLoading: false });
+    } finally {
+      set({ isLoading: false });
     }
   },
 
-  // စာရင်းအသစ်ထည့်ခြင်း
   addTransaction: async (t) => {
     try {
       const { isGuest } = useAuthStore.getState();
@@ -80,49 +87,59 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
         createdAt: new Date().toISOString()
       };
 
-      const currentTransactions = get().transactions;
-      const updated = [newTransaction, ...currentTransactions];
-      
-      if (isGuest) {
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      }
+      const updated = [newTransaction, ...get().transactions];
+      if (isGuest) await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       set({ transactions: updated });
     } catch (error) {
       console.error("Add error:", error);
     }
   },
 
-  // စာရင်းပြန်ပြင်ခြင်း
   updateTransaction: async (id, updatedData) => {
-    const current = get().transactions;
-    const updated = current.map(t => 
+    const updated = get().transactions.map(t => 
       t.id === id ? { ...t, ...updatedData, updatedAt: new Date().toISOString() } : t
     );
-    
     const { isGuest } = useAuthStore.getState();
-    if (isGuest) {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    }
+    if (isGuest) await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     set({ transactions: updated });
   },
   
-  // စာရင်းဖျက်ခြင်း
+  // ✅ စာရင်းဖျက်တဲ့အခါ Recovery Trash ထဲ ထည့်တဲ့ Logic ပေါင်းထည့်ထားပါတယ်
   deleteTransaction: async (id: string) => {
     try {
       const currentTransactions = get().transactions;
+      const itemToDelete = currentTransactions.find(t => t.id === id);
       const updated = currentTransactions.filter(t => t.id !== id);
       
-      const { isGuest } = useAuthStore.getState();
-      if (isGuest) {
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      if (itemToDelete) {
+        // Trash ထဲကို အခုဖျက်လိုက်တာ ထည့်မယ် (နောက်ဆုံး ၂၀ ခုပဲ သိမ်းမယ်)
+        const updatedTrash = [itemToDelete, ...get().recoveryTrash].slice(0, 20);
+        await AsyncStorage.setItem(RECOVERY_KEY, JSON.stringify(updatedTrash));
+        set({ recoveryTrash: updatedTrash });
       }
+
+      const { isGuest } = useAuthStore.getState();
+      if (isGuest) await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       set({ transactions: updated });
     } catch (error) {
       console.error("Delete error:", error);
     }
   },
 
-  // Passcode အသစ်သိမ်းခြင်း
+  // ✅ Data အားလုံးကို အမှန်တကယ် ပျက်သွားအောင် လုပ်ပေးမယ့် function
+  clearAllData: async () => {
+    try {
+      const { isGuest } = useAuthStore.getState();
+      if (isGuest) {
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+        await AsyncStorage.setItem(RECOVERY_KEY, JSON.stringify([]));
+      }
+      set({ transactions: [], recoveryTrash: [] });
+    } catch (error) {
+      console.error("Clear error:", error);
+    }
+  },
+
   setPasscode: async (code: string) => {
     try {
       await AsyncStorage.setItem(PASSCODE_KEY, code);

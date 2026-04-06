@@ -15,6 +15,7 @@ import { Wallet, History as HistoryIcon, Settings, Plus, PieChart } from 'lucide
 import { useTranslation } from 'react-i18next';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { AnalyticsScreen } from '../screens/AnalyticsScreen';
+import { SettingsScreen } from '../screens/SettingsScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -83,7 +84,7 @@ function TabNavigator() {
       />
 
       <Tab.Screen name="History" component={HistoryScreen} options={{ tabBarLabel: t('history') }} />
-      <Tab.Screen name="Settings" component={HomeScreen} options={{ tabBarLabel: t('settings') }} />
+      <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: t('settings') }} />
     </Tab.Navigator>
   );
 }
