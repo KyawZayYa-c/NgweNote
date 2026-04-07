@@ -133,6 +133,25 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
     }
   };
 
+  // AddTransactionScreen ထဲက useEffect ကို ဒီလိုလေး Update လုပ်ပါ
+useEffect(() => {
+  if (route.params?.editData) {
+    const data = route.params.editData;
+    
+    // ပမာဏ (Amount) ကို auto ဖြည့်မယ်
+    setAmount(data.amount?.toString() || '');
+    
+    // မှတ်စု (Note/Title) ကို auto ဖြည့်မယ်
+    setNote(data.title || '');
+    
+    // အကယ်၍ Shopping ကနေ လာတာဆိုရင် Type ကို expense လို့ ပေးထားမယ်
+    if(data.type) setType(data.type);
+    
+    // Category ကိုလည်း default တစ်ခုခု သတ်မှတ်ချင်ရင် (ဥပမာ Shopping)
+    // setSelectedCat({ name: 'Shopping' }); 
+  }
+}, [route.params?.editData]);
+
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 

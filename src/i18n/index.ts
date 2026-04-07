@@ -46,6 +46,11 @@ const resources = {
   editLock: "Locked during edit mode",
 
 
+  add_item: "Add Item",
+  est_price: "Est. Price",
+  no_shopping: "No items to buy",
+
+
     home: "Home",
     analytics: "Analytics",
     history: "History",
@@ -115,7 +120,22 @@ notSynced: "Not Synced (Guest Mode)",
 cloudSynced: "Cloud Synced",
 gotIt: "Got it",
 
-
+shopping_title: "Shopping List 🛒",
+      tab_to_buy: "To-Buy",
+      tab_bought: "Bought ✨",
+      no_items_to_buy: "Nothing to buy for now ☕",
+      no_items_bought: "No items bought yet 🛍️",
+      total_est_label: "Total Est. Cost 💰",
+      confirmed_label: "Recorded to Expense ✅",
+      confirm_buy_title: "Confirm Purchase",
+      confirm_buy_desc: "Is the price correct? It will be added to your expenses.",
+      todayHistory: "History 📝",
+      toBuy: "To Buy 🛒",
+      totalEstimate: "Total Estimate",
+itemName: "Item Name",
+estPrice: "Estimated Price",
+qty: "Qty",
+saveRecord: "Save Item",
 
     }
   },
@@ -162,13 +182,17 @@ gotIt: "Got it",
       batchLockType: "စာရင်းအများကြီးသွင်းနေချိန်တွင် အမျိုးအစားပြောင်း၍မရပါ",
       editLock: "ပြင်ဆင်နေချိန်တွင် ပြောင်းလဲ၍မရပါ",
 
+      add_item: "ပစ္စည်းအသစ်ထည့်ရန်",
+      est_price: "ခန့်မှန်းဈေး",
+      no_shopping: "ဝယ်စရာစာရင်း မရှိသေးပါ",
+
 
     home: "ပင်မ",
     analytics: "သုံးသပ်ချက်",
     history: "မှတ်တမ်း",
-      settings: "ဆက်တင်",
-  historyTitle: "ငွေစာရင်း မှတ်တမ်းများ",
-searchPlaceholder: "မှတ်စုဖြင့် ရှာဖွေရန်...",
+    settings: "ဆက်တင်",
+    historyTitle: "ငွေစာရင်း မှတ်တမ်းများ",
+    searchPlaceholder: "မှတ်စုဖြင့် ရှာဖွေရန်...",
       filterByCategory: "အမျိုးအစားအလိုက် စစ်ထုတ်ရန်",
       //history Screen
       success: "အောင်မြင်သည်",
@@ -230,7 +254,24 @@ weak: "အားနည်းသည် (ပြောင်းလဲပါ)",
 strong: "ကောင်းမွန်သည်",
 dataRecovery: "ဒေတာ ပြန်လည်ရယူနိုင်မှု",
 cloudSynced: "Cloud တွင် သိမ်းဆည်းပြီး",
-gotIt: "သိရှိပါပြီ",
+      gotIt: "သိရှိပါပြီ",
+
+      shopping_title: "ဝယ်ယူရန်စာရင်း 🛒",
+      tab_to_buy: "ဝယ်ယူရန်",
+      tab_bought: "ဝယ်ပြီးသား ✨",
+      no_items_to_buy: "ဒီနေ့အတွက် ဝယ်စရာ မရှိသေးပါဘူး ☕",
+      no_items_bought: "ဘာမှ မဝယ်ရသေးပါဘူး 🛍️",
+      total_est_label: "စုစုပေါင်းကုန်ကျနိုင်ခြေ 💰",
+      confirmed_label: "စာရင်းသွင်းပြီးပြီ ✅",
+      confirm_buy_title: "ဝယ်ယူမှု အတည်ပြုရန်",
+      confirm_buy_desc: "ဈေးနှုန်း မှန်ကန်ပါသလား? အသုံးစရိတ်စာရင်းထဲသို့ တန်းထည့်ပေးပါမည်။",
+      todayHistory: "မှတ်တမ်း 📝",
+      toBuy: "ဝယ်ယူရန် 🛒",
+      "totalEstimate": "စုစုပေါင်းခန့်မှန်းခြေ",
+itemName: "ပစ္စည်းအမည်",
+estPrice: "ခန့်မှန်းဈေးနှုန်း",
+qty: "အရေအတွက်",
+saveRecord: "သိမ်းဆည်းမည်",
     }
   }
 };

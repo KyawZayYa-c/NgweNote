@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from './useAuthStore';
 
-// ၁။ Transaction Structure (အစ်ကို့အတိုင်းပဲ ထားပါတယ်)
+// ၁။ Transaction Structure
 export interface Transaction {
   id: string;
   userId: string;
@@ -15,46 +15,67 @@ export interface Transaction {
   updatedAt?: string;
 }
 
-// ၂။ Store Interface (Recovery နဲ့ ClearData function တွေ ထပ်တိုးလိုက်ပါတယ်)
+// ၂။ Shopping Item Structure
+export interface ShoppingItem {
+  id: string;
+  itemName: string;
+  unitPrice: number;
+  count: number;
+  isBought: boolean;
+  createdAt: string;
+}
+
+// ၃။ Store Interface (Syntax ပြင်ဆင်ပြီး)
 interface ExpenseState {
   transactions: Transaction[];
-  recoveryTrash: Transaction[]; // ဖျက်လိုက်တာတွေ ခေတ္တသိမ်းရန်
+  recoveryTrash: Transaction[];
+  toBuyItems: ShoppingItem[]; // နေရာမှန်ရွှေ့ထားသည်
   isLoading: boolean;
   userPasscode: string;
-  adminNoti: string | null; // ထပ်တိုးရန်
-  setAdminNoti: (message: string | null) => void; // ထပ်တိုးရန်
+  adminNoti: string | null;
+  
+  setAdminNoti: (message: string | null) => void;
   fetchTransactions: () => Promise<void>;
+  
   addTransaction: (t: { 
     title: string; 
     amount: number; 
     category: string; 
     type: 'income' | 'expense'; 
-    transactionDate: string 
+    transactionDate: string;
   }) => Promise<void>;
+
   deleteTransaction: (id: string) => Promise<void>;
   updateTransaction: (id: string, updatedData: Partial<Transaction>) => Promise<void>;
   setPasscode: (code: string) => Promise<void>;
-  clearAllData: () => Promise<void>; // Data အကုန်ဖျက်ရန်
+  clearAllData: () => Promise<void>;
+
+  // Shopping Actions
+  addToBuyItem: (item: { itemName: string; unitPrice: number; count: number }) => Promise<void>;
+  deleteToBuyItem: (id: string) => Promise<void>;
+  toggleBoughtStatus: (id: string) => Promise<void>;
+  fetchToBuyItems: () => Promise<void>;
 }
 
 const STORAGE_KEY = '@local_data';
 const PASSCODE_KEY = '@user_passcode';
-const RECOVERY_KEY = '@recovery_data'; // Trash အတွက် Key
+const RECOVERY_KEY = '@recovery_data';
+const TO_BUY_KEY = '@to_buy_items'; // ⚠️ ဒါထည့်ဖို့ ကျန်ခဲ့တာပါ
 
 export const useExpenseStore = create<ExpenseState>((set, get) => ({
-  
   transactions: [],
   recoveryTrash: [],
+  toBuyItems: [],
   isLoading: false,
   userPasscode: '1234',
   adminNoti: null,
-  setAdminNoti: (message: string | null) => set({ adminNoti: message }),
+
+  setAdminNoti: (message) => set({ adminNoti: message }),
 
   fetchTransactions: async () => {
     set({ isLoading: true });
     try {
       const { isGuest } = useAuthStore.getState();
-      
       const storedPass = await AsyncStorage.getItem(PASSCODE_KEY);
       const storedTrash = await AsyncStorage.getItem(RECOVERY_KEY);
       
@@ -63,8 +84,7 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
 
       if (isGuest) {
         const data = await AsyncStorage.getItem(STORAGE_KEY);
-        const parsedData = data ? JSON.parse(data) : [];
-        set({ transactions: parsedData });
+        set({ transactions: data ? JSON.parse(data) : [] });
       }
     } catch (error) {
       console.error("Fetch error:", error);
@@ -104,15 +124,13 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
     set({ transactions: updated });
   },
   
-  // ✅ စာရင်းဖျက်တဲ့အခါ Recovery Trash ထဲ ထည့်တဲ့ Logic ပေါင်းထည့်ထားပါတယ်
-  deleteTransaction: async (id: string) => {
+  deleteTransaction: async (id) => {
     try {
       const currentTransactions = get().transactions;
       const itemToDelete = currentTransactions.find(t => t.id === id);
       const updated = currentTransactions.filter(t => t.id !== id);
       
       if (itemToDelete) {
-        // Trash ထဲကို အခုဖျက်လိုက်တာ ထည့်မယ် (နောက်ဆုံး ၂၀ ခုပဲ သိမ်းမယ်)
         const updatedTrash = [itemToDelete, ...get().recoveryTrash].slice(0, 20);
         await AsyncStorage.setItem(RECOVERY_KEY, JSON.stringify(updatedTrash));
         set({ recoveryTrash: updatedTrash });
@@ -126,26 +144,64 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
     }
   },
 
-  // ✅ Data အားလုံးကို အမှန်တကယ် ပျက်သွားအောင် လုပ်ပေးမယ့် function
+  setPasscode: async (code) => {
+    try {
+      await AsyncStorage.setItem(PASSCODE_KEY, code);
+      set({ userPasscode: code });
+    } catch (error) {
+      console.error("Set Passcode error:", error);
+    }
+  },
+
+  // Shopping Logic
+  fetchToBuyItems: async () => {
+    try {
+      const data = await AsyncStorage.getItem(TO_BUY_KEY);
+      if (data) set({ toBuyItems: JSON.parse(data) });
+    } catch (error) {
+      console.error("Fetch ToBuy error:", error);
+    }
+  },
+
+  addToBuyItem: async (item) => {
+    const newItem: ShoppingItem = {
+      id: Date.now().toString(),
+      itemName: item.itemName,
+      unitPrice: item.unitPrice,
+      count: item.count,
+      isBought: false,
+      createdAt: new Date().toISOString(),
+    };
+    const updated = [newItem, ...get().toBuyItems];
+    await AsyncStorage.setItem(TO_BUY_KEY, JSON.stringify(updated));
+    set({ toBuyItems: updated });
+  },
+
+  toggleBoughtStatus: async (id) => {
+    const updated = get().toBuyItems.map(item => 
+      item.id === id ? { ...item, isBought: !item.isBought } : item
+    );
+    await AsyncStorage.setItem(TO_BUY_KEY, JSON.stringify(updated));
+    set({ toBuyItems: updated });
+  },
+
+  deleteToBuyItem: async (id) => {
+    const updated = get().toBuyItems.filter(item => item.id !== id);
+    await AsyncStorage.setItem(TO_BUY_KEY, JSON.stringify(updated));
+    set({ toBuyItems: updated });
+  },
+
   clearAllData: async () => {
     try {
       const { isGuest } = useAuthStore.getState();
       if (isGuest) {
         await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify([]));
         await AsyncStorage.setItem(RECOVERY_KEY, JSON.stringify([]));
+        await AsyncStorage.setItem(TO_BUY_KEY, JSON.stringify([]));
       }
-      set({ transactions: [], recoveryTrash: [] });
+      set({ transactions: [], recoveryTrash: [], toBuyItems: [] });
     } catch (error) {
       console.error("Clear error:", error);
-    }
-  },
-
-  setPasscode: async (code: string) => {
-    try {
-      await AsyncStorage.setItem(PASSCODE_KEY, code);
-      set({ userPasscode: code });
-    } catch (error) {
-      console.error("Set Passcode error:", error);
     }
   },
 }));

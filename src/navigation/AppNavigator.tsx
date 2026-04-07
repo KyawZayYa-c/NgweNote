@@ -1,43 +1,78 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { View, TouchableOpacity, StyleSheet, Platform, Text, Modal, Pressable } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
-import { View, TouchableOpacity, StyleSheet, Platform, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { HomeScreen } from '../screens/HomeScreen';
 import { AddTransactionScreen } from '../screens/AddTransactionScreen';
 import { LoginScreen } from '../screens/LoginScreen'; 
 import { useAuthStore } from '../context/useAuthStore'; 
-import { useThemeStore } from '../context/useThemeStore'; // Theme Store ကို ခေါ်သုံးမယ်
-import { fontSize } from '../theme/fontSize';
-import { Wallet, History as HistoryIcon, Settings, Plus, PieChart } from 'lucide-react-native';
+import { useThemeStore } from '../context/useThemeStore';
+import { Wallet, History as HistoryIcon, Settings, History, ShoppingCart, X, Plus, PieChart } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { AnalyticsScreen } from '../screens/AnalyticsScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { AddToBuyScreen } from '../screens/AddToBuyScreen'; // ဒီကောင်လေး အသစ်ထည့်ရမယ်
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-const CustomTabBarButton = ({ children, onPress }: any) => {
+const CustomTabBarButton = () => {
+  const [visible, setVisible] = useState(false);
+  const navigation = useNavigation<any>();
   const { getColors } = useThemeStore();
   const themeColors = getColors();
+  const { t } = useTranslation();
   const gradientColors = themeColors.primaryGradient || ['#6A5AE0', '#00D1FF'];
 
+  const handlePress = (target: string) => {
+    setVisible(false);
+    navigation.navigate(target);
+  };
+
   return (
-    <TouchableOpacity 
-      activeOpacity={0.8}
-      style={styles.fabContainer} 
-      onPress={onPress}
-    >
-      <LinearGradient
-        colors={gradientColors}
-        style={[styles.fab, { borderColor: themeColors.background }]}
+    <View style={styles.fabContainer}>
+      <Modal
+        visible={visible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setVisible(false)}
       >
-        <Plus color="#FFFFFF" size={32} strokeWidth={2.5} />
-      </LinearGradient>
-    </TouchableOpacity>
+        <Pressable style={styles.modalOverlay} onPress={() => setVisible(false)}>
+          <View style={[styles.menuRow, { backgroundColor: themeColors.surface }]}>
+            <TouchableOpacity 
+              style={styles.menuItem} 
+              onPress={() => handlePress('AddTransaction')}
+            >
+              <View style={[styles.iconCircle, { backgroundColor: '#E8F5E9' }]}>
+                <History color="#2E7D32" size={24} />
+              </View>
+              <Text style={[styles.menuText, { color: themeColors.text.primary }]}>{t('History') || 'မှတ်တမ်း'}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.menuItem} 
+              onPress={() => handlePress('AddToBuy')} // Register လုပ်ထားတဲ့ နာမည်အတိုင်း ဖြစ်ရမယ်
+            >
+              <View style={[styles.iconCircle, { backgroundColor: '#E3F2FD' }]}>
+                <ShoppingCart color="#1976D2" size={24} />
+              </View>
+              <Text style={[styles.menuText, { color: themeColors.text.primary }]}>{t('ToBuy') || 'ဝယ်ယူရန်'}</Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
+
+      <TouchableOpacity activeOpacity={0.8} onPress={() => setVisible(true)}>
+        <LinearGradient colors={gradientColors} style={[styles.fab, { borderColor: themeColors.background }]}>
+          {visible ? <X color="#FFFFFF" size={28} /> : <Plus color="#FFFFFF" size={32} strokeWidth={2.5} />}
+        </LinearGradient>
+      </TouchableOpacity>
+    </View>
   );
 };
 
@@ -50,16 +85,9 @@ function TabNavigator() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarShowLabel: true,
         tabBarActiveTintColor: themeColors.primary,
         tabBarInactiveTintColor: themeColors.text.secondary,
-        tabBarStyle: [
-          styles.tabBar, 
-          { 
-            backgroundColor: theme === 'light' ? 'rgba(255, 255, 255, 0.95)' : themeColors.surface,
-            shadowColor: themeColors.primary 
-          }
-        ],
+        tabBarStyle: [styles.tabBar, { backgroundColor: theme === 'light' ? 'rgba(255, 255, 255, 0.95)' : themeColors.surface }],
         tabBarLabelStyle: styles.tabBarLabel,
         tabBarIcon: ({ color, focused }) => {
           const size = focused ? 24 : 22;
@@ -73,22 +101,18 @@ function TabNavigator() {
     >
       <Tab.Screen name="HomeTab" component={HomeScreen} options={{ tabBarLabel: t('home') }} />
       <Tab.Screen name="Analytics" component={AnalyticsScreen} options={{ tabBarLabel: t('analytics') }} />
-      
       <Tab.Screen 
         name="AddTransaction" 
         component={AddTransactionScreen} 
-        options={{ 
-          tabBarLabel: '',
-          tabBarButton: (props) => <CustomTabBarButton {...props} />
-        }} 
+        options={{ tabBarLabel: '', tabBarButton: (props) => <CustomTabBarButton {...props} /> }} 
       />
-
       <Tab.Screen name="History" component={HistoryScreen} options={{ tabBarLabel: t('history') }} />
       <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: t('settings') }} />
     </Tab.Navigator>
   );
 }
 
+// --- ဒီနေရာကို သေချာကြည့်ပေးပါ အစ်ကို ---
 export const AppNavigator = () => {
   const { isGuest } = useAuthStore();
 
@@ -98,7 +122,10 @@ export const AppNavigator = () => {
         {!isGuest ? (
           <Stack.Screen name="Login" component={LoginScreen} />
         ) : (
-          <Stack.Screen name="MainTabs" component={TabNavigator} />
+          <>
+            <Stack.Screen name="MainTabs" component={TabNavigator} />
+            <Stack.Screen name="AddToBuy" component={AddToBuyScreen} /> 
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
@@ -106,40 +133,13 @@ export const AppNavigator = () => {
 };
 
 const styles = StyleSheet.create({
-  tabBar: {
-    height: 70, 
-    position: 'absolute',
-    bottom: 20, 
-    marginHorizontal: 15,
-    borderRadius: 25,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 10,
-    paddingTop: 10,
-    borderTopWidth: 0,
-    elevation: 10,
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-  },
-  tabBarLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  fabContainer: {
-    top: -25, 
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fab: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 5,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    borderWidth: 4,
-  }
+  tabBar: { height: 70, position: 'absolute', bottom: 20, marginHorizontal: 15, borderRadius: 25, paddingBottom: Platform.OS === 'ios' ? 20 : 10, paddingTop: 10, borderTopWidth: 0, elevation: 10 },
+  tabBarLabel: { fontSize: 11, fontWeight: '600', marginTop: 2 },
+  fabContainer: { top: -25, justifyContent: 'center', alignItems: 'center' },
+  fab: { width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', elevation: 5, borderWidth: 4 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 110 },
+  menuRow: { flexDirection: 'row', padding: 20, borderRadius: 25, gap: 30, elevation: 5 },
+  menuItem: { alignItems: 'center', gap: 8 },
+  iconCircle: { width: 55, height: 55, borderRadius: 28, justifyContent: 'center', alignItems: 'center' },
+  menuText: { fontSize: 12, fontWeight: 'bold' },
 });
