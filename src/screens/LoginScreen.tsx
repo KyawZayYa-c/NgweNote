@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react'; 
 import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Dimensions, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../context/useAuthStore';
@@ -8,7 +8,10 @@ import { User, Wallet, Languages, Moon, Sun, Edit3, XCircle } from 'lucide-react
 import { AntDesign } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
-
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
+WebBrowser.maybeCompleteAuthSession();
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // ✅ Navigation Type သတ်မှတ်ခြင်း
@@ -20,7 +23,7 @@ export const LoginScreen = () => {
   // ✅ Route ကို Type သတ်မှတ်လိုက်ခြင်းဖြင့် editData error ပျောက်သွားပါမည်
   const route = useRoute<RouteProp<RootStackParamList, 'Login'>>();
   const navigation = useNavigation<any>();
-  const { loginAsGuest, language, setLanguage } = useAuthStore();
+ const { loginAsGuest, loginWithGoogle, language, setLanguage } = useAuthStore();
   const { theme, toggleTheme, getColors } = useThemeStore();
   const themeColors = getColors();
   const { t } = useTranslation();
@@ -36,6 +39,29 @@ export const LoginScreen = () => {
       loginAsGuest();
     }
   };
+
+// Google Login Hook
+const [request, response, promptAsync] = Google.useAuthRequest({
+  // အခုရလာတဲ့ Android ID ကို ဒီမှာထည့်ပါ
+  androidClientId: "531229847477-ipcb1hun0gocdvoi2vbd4f2gop2dd87q.apps.googleusercontent.com",
+  
+  // အစောကရထားတဲ့ Web ID ကို ဒီမှာထည့်ပါ
+  webClientId: "531229847477-l5m0v26te2v6lue5gj6ncagtglo0am4h.apps.googleusercontent.com",
+}, {
+  // ဒီနေရာမှာ redirectUri ကို manual ထည့်ပေးလိုက်ပါ
+  native: AuthSession.makeRedirectUri({
+    scheme: 'ngwenote', // app.json ထဲက scheme name
+  }),
+});
+  
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { authentication } = response;
+      if (authentication?.idToken) {
+         loginWithGoogle(authentication.idToken); 
+      }
+    }
+  }, [response]);
 
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
@@ -129,7 +155,13 @@ export const LoginScreen = () => {
 
               <TouchableOpacity 
                 style={[styles.actionBtn, styles.googleBtn]} 
-                onPress={() => {}}
+                onPress={() => {promptAsync()}}
+    //             onPress={() => {
+    //               promptAsync({
+                    
+    //                 showInRecents: true
+    //               });
+    // }}
                 activeOpacity={0.8}
               >
                 <AntDesign name="google" size={22} color="#EA4335" />

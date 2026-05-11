@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from './useAuthStore';
-
+import { db, auth } from '../services/firebaseConfig';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 // ၁။ Transaction Structure
 export interface Transaction {
   id: string;
@@ -93,6 +94,7 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
     }
   },
 
+  /*
   addTransaction: async (t) => {
     try {
       const { isGuest } = useAuthStore.getState();
@@ -114,6 +116,48 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
       console.error("Add error:", error);
     }
   },
+*/
+  
+  // useExpenseStore.ts ထဲက addTransaction ကို ဒီလို ပြောင်းရေးပါ
+addTransaction: async (t) => {
+  const { user, isGuest } = useAuthStore.getState();
+  const newId = Date.now().toString();
+
+  const newTransaction: Transaction = {
+    id: newId,
+    userId: isGuest ? 'guest' : user?.uid || 'unknown', // Login ဝင်ထားရင် UID ထည့်မယ်
+    ...t,
+    createdAt: new Date().toISOString()
+  };
+
+  // ၁။ Local မှာ အရင်ပြမယ်
+  const updated = [newTransaction, ...get().transactions];
+  set({ transactions: updated });
+
+  // ၂။ အကယ်၍ Login ဝင်ထားရင် Cloud (Firestore) ပေါ် တင်မယ် ✅
+  if (!isGuest && user) {
+    await setDoc(doc(db, 'transactions', newId), newTransaction);
+  } else {
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+  }
+},
+  
+  
+  // useExpenseStore.ts ထဲမှာ ထည့်ရန်
+verifyActionPassword: async (inputPin: string) => {
+  const { user } = useAuthStore.getState();
+  if (!user) return false;
+
+  // Firestore ထဲက PIN နဲ့ တိုက်စစ်မယ်
+  const userRef = doc(db, 'users', user.uid);
+  const userSnap = await getDoc(userRef);
+  
+  if (userSnap.exists()) {
+    const correctPin = userSnap.data().actionPassword;
+    return inputPin === correctPin;
+  }
+  return false;
+},
 
   updateTransaction: async (id, updatedData) => {
     const updated = get().transactions.map(t => 
@@ -143,7 +187,7 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
       console.error("Delete error:", error);
     }
   },
-
+/*
   setPasscode: async (code) => {
     try {
       await AsyncStorage.setItem(PASSCODE_KEY, code);
@@ -152,7 +196,31 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
       console.error("Set Passcode error:", error);
     }
   },
+*/
+  // useExpenseStore.ts ထဲမှာ ဒီအတိုင်း ပြင်လိုက်ပါ
 
+setPasscode: async (code: string) => {
+  try {
+    const { user, isGuest } = useAuthStore.getState();
+
+    // ၁။ ဖုန်းထဲမှာ Password ကို အရင်မှတ်မယ်
+    await AsyncStorage.setItem(PASSCODE_KEY, code);
+    set({ userPasscode: code });
+
+    // ၂။ အကယ်၍ Login ဝင်ထားရင် Cloud (Firestore) ပေါ်မှာပါ လှမ်းပြင်မယ် ✅
+    if (!isGuest && user) {
+      const userRef = doc(db, 'users', user.uid);
+      await setDoc(userRef, { actionPassword: code }, { merge: true });
+      
+      // AuthStore ထဲက user object ကိုပါ password အသစ်နဲ့ update ဖြစ်သွားအောင် လုပ်ပေးမယ်
+      useAuthStore.getState().setUser({ ...user, actionPassword: code });
+    }
+
+    console.log("Password updated both locally and on Cloud!");
+  } catch (error) {
+    console.error("Set Passcode error:", error);
+  }
+},
   // Shopping Logic
   fetchToBuyItems: async () => {
     try {

@@ -1,0 +1,162 @@
+import React, { useState } from 'react';
+import { 
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, 
+  Image, Dimensions, Alert, StatusBar, Switch 
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { 
+  User, Cloud, Lock, Languages, Moon, 
+  Info, ChevronRight, LogOut, Trash2, CheckCircle2, RefreshCw
+} from 'lucide-react-native';
+import { useThemeStore } from '../context/useThemeStore';
+import { useAuthStore } from '../context/useAuthStore';
+import { useTranslation } from 'react-i18next';
+
+const { width } = Dimensions.get('window');
+
+// Reusable Row Component
+const SettingRow = ({ icon: Icon, label, value, onPress, isToggle, toggleValue, onToggleChange, isDanger }: any) => {
+  const { getColors } = useThemeStore();
+  const themeColors = getColors();
+
+  return (
+    <TouchableOpacity 
+      style={[styles.row, { borderBottomColor: 'rgba(150, 150, 150, 0.1)' }]} 
+      onPress={onPress}
+      disabled={isToggle}
+    >
+      <View style={styles.rowLeft}>
+        <View style={[styles.iconContainer, { backgroundColor: isDanger ? 'rgba(255, 107, 107, 0.1)' : 'rgba(150, 150, 150, 0.1)' }]}>
+          <Icon size={20} color={isDanger ? '#FF6B6B' : themeColors.primary} />
+        </View>
+        <Text style={[styles.rowLabel, { color: isDanger ? '#FF6B6B' : themeColors.text.primary }]}>{label}</Text>
+      </View>
+      
+      <View style={styles.rowRight}>
+        {isToggle ? (
+          <Switch 
+            value={toggleValue} 
+            onValueChange={onToggleChange}
+            trackColor={{ false: "#767577", true: themeColors.primary }}
+            thumbColor="#fff"
+          />
+        ) : (
+          <View style={styles.valueRow}>
+            {value && <Text style={[styles.rowValue, { color: themeColors.text.secondary }]}>{value}</Text>}
+            <ChevronRight size={18} color="#999" />
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+export const SettingsScreen = () => {
+  const { theme, toggleTheme, getColors } = useThemeStore();
+  const themeColors = getColors();
+  const { t, i18n } = useTranslation();
+  const { user, isGuest, logout } = useAuthStore();
+  
+  // လောလောဆယ် Local State နဲ့ အရင်ပြထားတာပါ
+  const [appLock, setAppLock] = useState(true); 
+  const isSyncing = false; // Firebase နဲ့ ချိတ်ရင် ဒါကို dynamic လုပ်ပါမယ်
+
+  const handleLogout = () => {
+    Alert.alert(t('logout'), t('confirmLogout'), [
+      { text: t('cancel'), style: 'cancel' },
+      { text: 'Logout', onPress: logout, style: 'destructive' }
+    ]);
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: themeColors.background }}>
+      <StatusBar barStyle="light-content" />
+      
+      {/* Header with Gradient */}
+      <LinearGradient colors={themeColors.primaryGradient} style={styles.navBar}>
+        <Text style={styles.navTitle}>{t('settings')}</Text>
+      </LinearGradient>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+        
+        {/* 1. Account & Sync Section */}
+ 
+
+        {/* 2. Security Section */}
+        <View style={[styles.sectionCard, { backgroundColor: themeColors.surface }]}>
+          <Text style={[styles.sectionTitle, { color: themeColors.primary }]}>{t('security')}</Text>
+          <SettingRow 
+            icon={Lock} 
+            label={t('appLock')} 
+            isToggle 
+            toggleValue={appLock} 
+            onToggleChange={setAppLock} 
+          />
+          <SettingRow 
+            icon={RefreshCw} 
+            label={t('changePasscode')} 
+            onPress={() => Alert.alert("Passcode", "Change Passcode Logic goes here")} 
+          />
+        </View>
+
+        {/* 3. Preferences Section */}
+        <View style={[styles.sectionCard, { backgroundColor: themeColors.surface }]}>
+          <Text style={[styles.sectionTitle, { color: themeColors.primary }]}>{t('preferences')}</Text>
+          <SettingRow 
+            icon={Languages} 
+            label={t('language')} 
+            value={i18n.language === 'mm' ? 'မြန်မာ' : 'English'} 
+            onPress={() => i18n.changeLanguage(i18n.language === 'mm' ? 'en' : 'mm')} 
+          />
+          <SettingRow 
+            icon={Moon} 
+            label={t('theme')} 
+            isToggle 
+            toggleValue={theme === 'dark'} 
+            onToggleChange={toggleTheme} 
+          />
+        </View>
+
+        {/* 4. About Section */}
+        <View style={[styles.sectionCard, { backgroundColor: themeColors.surface, alignItems: 'center', paddingVertical: 30 }]}>
+          <Image source={require('../../assets/icon.png')} style={styles.aboutLogo} />
+          <Text style={[styles.aboutAppName, { color: themeColors.text.primary }]}>NgweNote</Text>
+          <Text style={{ color: themeColors.text.secondary }}>{t('version')} 1.0.0</Text>
+          <View style={styles.devTag}>
+             <Text style={{ color: themeColors.text.secondary, fontSize: 12 }}>{t('developer')}: NgweNote Team</Text>
+          </View>
+        </View>
+
+        {/* 5. Danger Zone */}
+        <View style={[styles.sectionCard, { backgroundColor: themeColors.surface }]}>
+          <SettingRow icon={Trash2} label={t('resetData')} isDanger onPress={() => {}} />
+          <SettingRow icon={LogOut} label={t('logout')} isDanger onPress={handleLogout} />
+        </View>
+
+      </ScrollView>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  navBar: { paddingTop: 60, paddingBottom: 30, paddingHorizontal: 25, borderBottomLeftRadius: 40, borderBottomRightRadius: 40 },
+  navTitle: { fontSize: 26, fontWeight: 'bold', color: '#fff' },
+  sectionCard: { marginHorizontal: 20, marginTop: 20, borderRadius: 25, padding: 20, elevation: 4, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
+  sectionTitle: { fontSize: 14, fontWeight: 'bold', marginBottom: 15, textTransform: 'uppercase', letterSpacing: 1 },
+  profileInfo: { flexDirection: 'row', alignItems: 'center', gap: 15 },
+  avatarContainer: { width: 70, height: 70, borderRadius: 25, borderWidth: 2, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  avatarImg: { width: '100%', height: '100%' },
+  userName: { fontSize: 20, fontWeight: 'bold' },
+  syncStatus: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 5 },
+  syncText: { fontSize: 12, fontWeight: '600' },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 15 },
+  rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 15 },
+  iconContainer: { width: 38, height: 38, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  rowLabel: { fontSize: 16, fontWeight: '500' },
+  rowRight: { flexDirection: 'row', alignItems: 'center' },
+  valueRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  rowValue: { fontSize: 14 },
+  aboutLogo: { width: 80, height: 80, borderRadius: 20, marginBottom: 15 },
+  aboutAppName: { fontSize: 22, fontWeight: 'bold' },
+  devTag: { marginTop: 15, paddingHorizontal: 15, paddingVertical: 5, borderRadius: 10, backgroundColor: 'rgba(150,150,150,0.05)' }
+});

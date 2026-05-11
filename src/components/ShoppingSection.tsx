@@ -1,30 +1,42 @@
-import React, { useState, useMemo, useEffect } from 'react'; // useEffect ထည့်လိုက်ပါပြီ
-import { View, FlatList, Text, TouchableOpacity, StyleSheet, Keyboard } from 'react-native';
+import React, { useState, useMemo, useEffect } from 'react';
+import { View, FlatList, Text, TouchableOpacity, StyleSheet, Keyboard, Alert } from 'react-native';
 import { ShoppingCard } from './ShoppingCard';
 import { useThemeStore } from '../context/useThemeStore';
+import { useShoppingStore } from '../context/useShoppingStore'; 
 import { useTranslation } from 'react-i18next';
-import { Tag } from 'lucide-react-native';
+import { Tag, Plug } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
+
+// ၁။ Interface ကို သေချာသတ်မှတ်ပေးလိုက်ပါ
+interface ShoppingSectionProps {
+  toBuyItems: any[];
+  todayTransactions: any[];
+  onBuy?: (item: any) => void; // HomeScreen က လှမ်းခေါ်မယ့် function နာမည်
+}
 
 export const ShoppingSection = ({ 
   toBuyItems, 
   todayTransactions, 
-  onToggle 
-}: { 
-  toBuyItems: any[], 
-  todayTransactions: any[], 
-  onToggle: (item: any) => void // ✅ ID မဟုတ်ဘဲ item (any) လို့ ပြင်လိုက်ပါ
-}) => {
+  onBuy 
+}: ShoppingSectionProps) => {
   const { getColors } = useThemeStore();
   const themeColors = getColors();
   const { t } = useTranslation();
-  
+  const navigation = useNavigation<any>();
+
+  const { toggleBoughtStatus, deleteToBuyItem } = useShoppingStore();
   const [activeTab, setActiveTab] = useState('history');
 
+  // မှတ်တမ်းမရှိရင် "ဝယ်ယူရန်" tab ကို အလိုအလျောက် ပြောင်းပေးမယ်
   useEffect(() => {
-    if (todayTransactions.length === 0) setActiveTab('toBuy');
-    else setActiveTab('history');
+    if (todayTransactions.length === 0) {
+      setActiveTab('toBuy');
+    } else {
+      setActiveTab('history');
+    }
   }, [todayTransactions.length]);
 
+  // ဒီနေ့ မှတ်တမ်း စုစုပေါင်း တွက်ချက်ခြင်း
   const todayTotals = useMemo(() => {
     let income = 0;
     let expense = 0;
@@ -36,12 +48,12 @@ export const ShoppingSection = ({
     return { income, expense };
   }, [todayTransactions]);
 
-const toBuyTotal = useMemo(() => {
-  return toBuyItems
-    .filter(item => !item.isBought)
-    // ✅ qty အစား count၊ estPrice အစား unitPrice လို့ ပြင်ပါ
-    .reduce((sum, item) => sum + ((item.count || 0) * (item.unitPrice || 0)), 0);
-}, [toBuyItems]);
+  // ဝယ်ယူရန် စုစုပေါင်း
+  const toBuyTotal = useMemo(() => {
+    return toBuyItems
+      .filter(item => !item.isBought)
+      .reduce((sum, item) => sum + ((item.count || 0) * (item.unitPrice || 0)), 0);
+  }, [toBuyItems]);
 
   const tabs = todayTransactions.length === 0 
     ? [{ id: 'toBuy', label: 'ဝယ်ယူရန် 🛒' }, { id: 'history', label: 'ဒီနေ့မှတ်တမ်း 📝' }]
@@ -49,8 +61,10 @@ const toBuyTotal = useMemo(() => {
 
   return (
     <View style={{ flex: 1, backgroundColor: themeColors.background, borderTopLeftRadius: 30, borderTopRightRadius: 30 }}>
+      {/* Tab Bar Section */}
       <View style={[styles.tabBar, { backgroundColor: themeColors.background }]}>
         <View style={{ flexDirection: 'row', gap: 20 }}>
+          
           {tabs.map((tab) => (
             <TouchableOpacity 
               key={tab.id}
@@ -77,8 +91,21 @@ const toBuyTotal = useMemo(() => {
         </View>
       </View>
 
+      {/* ၂။ ခလုတ်ကို Tab Bar ရဲ့ အပြင်ဘက် ဒီနေရာမှာ ထည့်ပါ ✅ */}
+      {activeTab === 'toBuy' && (
+        <TouchableOpacity 
+          style={[styles.inlineAddBtn, { backgroundColor: themeColors.primary + '15', borderColor: themeColors.primary + '40' }]} 
+          onPress={() => navigation.navigate('AddToBuy')}
+        >
+          <Text style={{ color: themeColors.primary, fontWeight: 'bold', fontSize: 14 }}>
+            + ဝယ်စရာအသစ်ထည့်ရန်
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      {/* List Section */}
       <FlatList
-        data={activeTab === 'history' ? todayTransactions : toBuyItems.filter(i => !i.isBought)}
+        data={activeTab === 'history' ? todayTransactions : toBuyItems}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           activeTab === 'history' ? (
@@ -94,14 +121,23 @@ const toBuyTotal = useMemo(() => {
               </View>
             </View>
           ) : (
-            // ✅ onToggle မှာ item တစ်ခုလုံး ပို့ပေးလိုက်ပါတယ်
-           <ShoppingCard 
-    item={item} 
-    onToggle={() => {
-      Keyboard.dismiss(); // ✅ Keyboard အရင်ပိတ်လိုက်မယ်
-      onToggle(item);     // ပြီးမှ function ဆက်လုပ်မယ်
-    }} 
-  />
+            <ShoppingCard 
+              item={item} 
+              onToggle={() => {
+                Keyboard.dismiss();
+                toggleBoughtStatus(item.id); 
+                if (onBuy) onBuy(item); 
+              }} 
+              onDelete={(id) => {
+                Alert.alert("သတိပြုရန်", "ဤပစ္စည်းကို စာရင်းထဲမှ ဖျက်မှာ သေချာပါသလား?", [
+                  { text: "မဖျက်တော့ပါ", style: "cancel" },
+                  { text: "ဖျက်မည်", onPress: () => deleteToBuyItem(id), style: 'destructive' }
+                ]);
+              }}
+              onEdit={(editItem) => {
+                navigation.navigate('AddToBuy', { editData: editItem });
+              }}
+            />
           )
         )}
         ListEmptyComponent={<Text style={[styles.emptyText, { color: themeColors.text.secondary }]}>မှတ်တမ်းမရှိသေးပါ</Text>}
@@ -117,10 +153,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, 
     paddingTop: 15, 
     paddingBottom: 5,
-    zIndex: 10 
+    zIndex: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
   },
   tabItem: { paddingVertical: 8 },
   tabLabel: { fontSize: 15, fontWeight: '800' },
+  inlineAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 16,
+    marginVertical: 10,
+    paddingVertical: 14,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: '#ccc',
+  },
   itemCard: { 
     flexDirection: 'row', 
     justifyContent: 'space-between', 

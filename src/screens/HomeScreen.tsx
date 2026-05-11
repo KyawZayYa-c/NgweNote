@@ -45,18 +45,21 @@ export const HomeScreen = () => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
 const handleBuyAction = (item: any) => {
-    // ၁။ Shopping Store မှာ update လုပ်ခြင်း
-    toggleBoughtStatus(item.id);
+  // ၁။ Shopping Store မှာ ဝယ်ပြီးကြောင်း status ပြောင်းမယ်
+  toggleBoughtStatus(item.id);
 
-    // ၂။ စာရင်းသွင်းရန် screen သို့ data ပို့ပေးခြင်း
-    navigation.navigate('AddTransaction', {
-      editData: {
-        title: item.itemName,
-        amount: item.unitPrice * item.count,
-        type: 'expense'
-      }
-    });
-  };
+  // ၂။ AddTransaction Screen ကို Data ပို့ပြီး ကူးသွားမယ်
+  navigation.navigate('AddTransaction', {
+    editData: {
+      ...item, // item တစ်ခုလုံးပါအောင် ဖြန့်ချလိုက်ပါ
+      title: item.itemName,
+      amount: item.unitPrice * item.count,
+      type: 'expense',
+      //category: 'Shopping' // လိုအပ်ရင် category ပါ တစ်ခါတည်း သတ်မှတ်နိုင်ပါတယ်
+      category: item.category || 'Shopping'
+    }
+  });
+};
 
   useEffect(() => {
     fetchToBuyItems();
@@ -201,17 +204,10 @@ const handleBuyAction = (item: any) => {
 
       <View style={styles.contentArea}>
         <ShoppingSection 
-          toBuyItems={toBuyItems || []} 
-          todayTransactions={transactions}
-      onToggle={(item) => navigation.navigate('AddTransaction', { 
-  editData: { 
-    ...item, 
-    amount: item.unitPrice * item.count, // amount ကို ဒီမှာတင် တွက်ပို့လိုက်ပါ
-    title: item.itemName,
-    type: 'expense'
-  } 
-})}
-        />
+    toBuyItems={toBuyItems || []} 
+    todayTransactions={transactions}
+    onBuy={handleBuyAction} // ဒီနေရာမှာ နာမည်တူအောင် ပြောင်းပေးပါ
+  />
       </View>
     </View>
   );
