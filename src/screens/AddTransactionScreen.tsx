@@ -1,3 +1,4 @@
+//src/screens/AddTransactionScreen.tsx
 import React, { useState, useEffect } from 'react';
 import { 
   View, Text, StyleSheet, TextInput, TouchableOpacity, 

@@ -1,5 +1,9 @@
+//src/screens/AddToBuyScreen.tsx
 import React, { useState, useEffect } from 'react';
 import { useShoppingStore } from '../context/useShoppingStore';
+// AddToBuyScreen.tsx မှာ ဒီလိုပြင်ပါ
+ import { useExpenseStore } from '../context/useExpenseStore'; // useShoppingStore အစား ဒါကိုသုံးပါ
+
 import { 
   View, Text, StyleSheet, TextInput, TouchableOpacity, 
   ScrollView, Platform, KeyboardAvoidingView, StatusBar, Alert 
@@ -15,8 +19,8 @@ export const AddToBuyScreen = ({ navigation, route }: any) => {
   const themeColors = getColors();
   
   // ✅ Store က function တွေ ခေါ်မယ်
-  const { addToBuyItem, updateToBuyItem } = useShoppingStore();
-
+  //const { addToBuyItem, updateToBuyItem } = useShoppingStore();
+  const { addToBuyItem, updateToBuyItem } = useExpenseStore(); // ဒီမှာလည်း 
   // ✅ Route Params ကနေ Edit လုပ်မယ့် Data ကို ဖမ်းမယ်
   const editData = route.params?.editData;
   const isEditMode = !!editData;
@@ -78,17 +82,20 @@ export const AddToBuyScreen = ({ navigation, route }: any) => {
   const handleFinalSave = async () => {
     try {
       if (isEditMode) {
-        // --- ပြင်ဆင်ခြင်း Logic ---
-        if (!itemName || !unitPrice) return;
+        if (!itemName || !unitPrice) {
+          Alert.alert(t('warning'), "အချက်အလက်အပြည့်အစုံထည့်ပါ");
+          return;
+        }
+        
         await updateToBuyItem(editData.id, {
-          itemName,
+          itemName: itemName,
           unitPrice: parseFloat(unitPrice),
           count: parseInt(count),
         });
       } else {
         // --- အသစ်သိမ်းခြင်း Logic (Batch Save ပါဝင်သည်) ---
         const itemsToSave = [...itemList];
-        
+        console.log('Item to save => ', itemsToSave)
         // Input မှာ ကျန်နေတာရှိရင် ထည့်ပေါင်းမယ်
         if (itemName && unitPrice) {
           itemsToSave.push({
@@ -111,7 +118,9 @@ export const AddToBuyScreen = ({ navigation, route }: any) => {
             count: item.count
           });
         }
+        console.log('addToByItems => ', addToBuyItem);
       }
+      
       
       navigation.goBack();
     } catch (error) {

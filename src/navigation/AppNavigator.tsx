@@ -1,3 +1,4 @@
+//src/navigation/AppNavigator.tsx
 import React, { useState } from 'react';
 import { View, TouchableOpacity, StyleSheet, Platform, Text, Modal, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -20,62 +21,6 @@ import { AddToBuyScreen } from '../screens/AddToBuyScreen'; // ဒီကော�
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
-/* 
-const CustomTabBarButton = () => {
-  const [visible, setVisible] = useState(false);
-  const navigation = useNavigation<any>();
-  const { getColors } = useThemeStore();
-  const themeColors = getColors();
-  const { t } = useTranslation();
-  const gradientColors = themeColors.primaryGradient || ['#6A5AE0', '#00D1FF'];
-
-  const handlePress = (target: string) => {
-    setVisible(false);
-    navigation.navigate(target);
-  };
-
-  return (
-    <View style={styles.fabContainer}>
-      <Modal
-        visible={visible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setVisible(false)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setVisible(false)}>
-          <View style={[styles.menuRow, { backgroundColor: themeColors.surface }]}>
-            <TouchableOpacity 
-              style={styles.menuItem} 
-              onPress={() => handlePress('AddTransaction')}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: '#E8F5E9' }]}>
-                <History color="#2E7D32" size={24} />
-              </View>
-              <Text style={[styles.menuText, { color: themeColors.text.primary }]}>{t('History') || 'မှတ်တမ်း'}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.menuItem} 
-              onPress={() => handlePress('AddToBuy')} // Register လုပ်ထားတဲ့ နာမည်အတိုင်း ဖြစ်ရမယ်
-            >
-              <View style={[styles.iconCircle, { backgroundColor: '#E3F2FD' }]}>
-                <ShoppingCart color="#1976D2" size={24} />
-              </View>
-              <Text style={[styles.menuText, { color: themeColors.text.primary }]}>{t('ToBuy') || 'ဝယ်ယူရန်'}</Text>
-            </TouchableOpacity>
-          </View>
-        </Pressable>
-      </Modal>
-
-      <TouchableOpacity activeOpacity={0.8} onPress={() => setVisible(true)}>
-        <LinearGradient colors={gradientColors} style={[styles.fab, { borderColor: themeColors.background }]}>
-          {visible ? <X color="#FFFFFF" size={28} /> : <Plus color="#FFFFFF" size={32} strokeWidth={2.5} />}
-        </LinearGradient>
-      </TouchableOpacity>
-    </View>
-  );
-};
-*/
 
 const CustomTabBarButton = () => {
   const navigation = useNavigation<any>();
@@ -97,43 +42,7 @@ const CustomTabBarButton = () => {
   );
 };
 
-/*
-function TabNavigator() {
-  const { t } = useTranslation();
-  const { theme, getColors } = useThemeStore();
-  const themeColors = getColors();
 
-  return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarActiveTintColor: themeColors.primary,
-        tabBarInactiveTintColor: themeColors.text.secondary,
-        tabBarStyle: [styles.tabBar, { backgroundColor: theme === 'light' ? 'rgba(255, 255, 255, 0.95)' : themeColors.surface }],
-        tabBarLabelStyle: styles.tabBarLabel,
-        tabBarIcon: ({ color, focused }) => {
-          const size = focused ? 24 : 22;
-          if (route.name === 'HomeTab') return <Wallet color={color} size={size} />;
-          if (route.name === 'Analytics') return <PieChart color={color} size={size} />;
-          if (route.name === 'History') return <HistoryIcon color={color} size={size} />;
-          if (route.name === 'Settings') return <Settings color={color} size={size} />;
-          return null;
-        },
-      })}
-    >
-      <Tab.Screen name="HomeTab" component={HomeScreen} options={{ tabBarLabel: t('home') }} />
-      <Tab.Screen name="Analytics" component={AnalyticsScreen} options={{ tabBarLabel: t('analytics') }} />
-      <Tab.Screen 
-        name="AddTransaction" 
-        component={AddTransactionScreen} 
-        options={{ tabBarLabel: '', tabBarButton: (props) => <CustomTabBarButton {...props} /> }} 
-      />
-      <Tab.Screen name="History" component={HistoryScreen} options={{ tabBarLabel: t('history') }} />
-      <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: t('settings') }} />
-    </Tab.Navigator>
-  );
-}
-*/
 function TabNavigator() {
   const { t } = useTranslation();
   const { theme, getColors } = useThemeStore();
@@ -176,18 +85,21 @@ function TabNavigator() {
   );
 }
 
+
+
 export const AppNavigator = () => {
-  const { isGuest } = useAuthStore();
+  // ✅ user ကိုပါ ဆွဲထုတ်လိုက်ပါ
+  const { isGuest, user } = useAuthStore(); 
 
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!isGuest ? (
+        {/* ✅ Logic ကို ပြင်လိုက်ပါ: Guest လည်းမဟုတ်၊ User လည်း မရှိရင် Login ပြမယ် */}
+        {!isGuest && !user ? (
           <Stack.Screen name="Login" component={LoginScreen} />
         ) : (
           <>
             <Stack.Screen name="MainTabs" component={TabNavigator} />
-            {/* AddTransaction ကို Stack ထဲမှာပါ ထည့်ထားမှ Tab ကနေ လှမ်းခေါ်ရင် Screen အပြည့်ပွင့်မှာပါ */}
             <Stack.Screen name="AddTransaction" component={AddTransactionScreen} />
             <Stack.Screen name="AddToBuy" component={AddToBuyScreen} /> 
           </>
@@ -196,28 +108,8 @@ export const AppNavigator = () => {
     </NavigationContainer>
   );
 };
-/*
-export const AppNavigator = () => {
-  const { isGuest } = useAuthStore();
-
-  return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!isGuest ? (
-          <Stack.Screen name="Login" component={LoginScreen} />
-        ) : (
-          <>
-            <Stack.Screen name="MainTabs" component={TabNavigator} />
-            <Stack.Screen name="AddToBuy" component={AddToBuyScreen} /> 
-          </>
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
-  );
-};
-*/
 const styles = StyleSheet.create({
-  tabBar: { height: 70, position: 'absolute', bottom: 20, marginHorizontal: 15, borderRadius: 25, paddingBottom: Platform.OS === 'ios' ? 20 : 10, paddingTop: 10, borderTopWidth: 0, elevation: 10 },
+  tabBar: { height: 70, position: 'absolute', bottom: 10, marginHorizontal: 15, borderRadius: 25, paddingBottom: Platform.OS === 'ios' ? 20 : 10, paddingTop: 10, borderTopWidth: 0, elevation: 10 },
   tabBarLabel: { fontSize: 11, fontWeight: '600', marginTop: 2 },
   fabContainer: { top: -25, justifyContent: 'center', alignItems: 'center' },
   fab: { width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', elevation: 5, borderWidth: 4 },

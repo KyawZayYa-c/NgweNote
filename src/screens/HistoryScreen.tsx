@@ -1,3 +1,4 @@
+//src/screens/HistoryScreen.tsx
 import React, { useState, useMemo, useRef } from 'react'; // useRef ထပ်ထည့်ထားပါတယ်
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, Modal, ScrollView } from 'react-native';
 import { useExpenseStore } from '../context/useExpenseStore';
@@ -7,6 +8,7 @@ import { Search, Calendar as CalendarIcon, TrendingUp, TrendingDown, Tag, Lock }
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { useNavigation } from '@react-navigation/native';
+import { useAuthStore } from '../context/useAuthStore';
 
 export const HistoryScreen = () => {
   const navigation = useNavigation<any>(); 
@@ -40,29 +42,71 @@ export const HistoryScreen = () => {
     { id: 'Health', label: t('health') },
   ];
 
-  const handleActionRequest = (id: string, type: 'delete' | 'edit') => {
-    setPendingAction({ id, type });
-    setIsPasscodeModal(true);
-  };
 
-  const confirmPasscode = async () => {
-    if (passcode === userPasscode) {
+const handleActionRequest = async (id: string, type: 'delete' | 'edit') => {
+  
+  const hasPasscode = userPasscode !== '' && userPasscode !== null && userPasscode !== undefined;
+
+  if (!hasPasscode) {
+    if (type === 'edit') {
+      setIsMenuVisible(false);
+      const itemToEdit = groupedTransactions
+        .flatMap((m: any) => m.days.flatMap((d: any) => d.data))
+        .find((t: any) => t.id === id);
+        
+      navigation.navigate('AddTransaction', { editData: itemToEdit || selectedItem });
+    } else if (type === 'delete') {
+      await deleteTransaction(id);
+    }
+    return; // Modal မပြစေရန် ဒီတင် လုပ်ငန်းစဉ်ကို ရပ်လိုက်မယ်
+  }
+
+  // ၃။ Passcode တကယ် သတ်မှတ်ထားမှသာ စကားဝှက်တောင်းသည့် Modal ကို ဖွင့်ပေးမယ်
+  setPendingAction({ id, type });
+  setIsPasscodeModal(true);
+};
+
+const confirmPasscode = async () => {
+  // ၁။ လိုအပ်တဲ့ state တွေကို store ထဲကနေ ဆွဲထုတ်ပါ
+  const { verifyActionPassword, deleteTransaction } = useExpenseStore.getState();
+  const { isGuest } = useAuthStore.getState();
+
+  try {
+    let isValid = false;
+
+    // ၂။ Guest လား Login User လား အပေါ်မူတည်ပြီး Passcode စစ်ပါ
+    if (isGuest) {
+      isValid = passcode === userPasscode; // Local state နဲ့ စစ်ခြင်း
+    } else {
+      isValid = await verifyActionPassword(passcode); // Cloud (Firestore) နဲ့ စစ်ခြင်း
+    }
+
+    // ၃။ Passcode မှန်တယ်ဆိုရင် Edit သို့မဟုတ် Delete ကို ဆက်လုပ်ပါ
+    if (isValid) {
       if (pendingAction?.type === 'edit') {
         setIsMenuVisible(false);
         setIsPasscodeModal(false);
+        // Edit screen ကို data နဲ့အတူ ပို့ပေးခြင်း
         navigation.navigate('AddTransaction', { editData: selectedItem }); 
       } else if (pendingAction?.type === 'delete') {
         await deleteTransaction(pendingAction.id);
         setIsPasscodeModal(false);
-        // Alert.alert(t('success'), t('deletedSuccess'));
       }
+      
+      // အောင်မြင်ရင် state တွေကို ပြန်ရှင်းပါ
       setPasscode('');
       setPendingAction(null);
     } else {
+      // ၄။ Passcode မှားရင် error ပြပါ
       Alert.alert(t('error'), t('wrongPasscode'));
       setPasscode('');
     }
-  };
+  } catch (error) {
+    console.error("Passcode verification error:", error);
+    Alert.alert(t('error'), "Verification failed. Please try again.");
+    setPasscode('');
+  }
+};
 
   // ✅ Scroll ဆွဲတဲ့အခါ လက်ရှိလအလိုက် Summary ကို ပြောင်းလဲတွက်ချက်ပေးမည့် Logic
   const activeMonthSummary = useMemo(() => {
@@ -70,7 +114,7 @@ export const HistoryScreen = () => {
     const parsedDate = parse(currentVisibleMonth, 'MMMM yyyy', new Date());
     const start = startOfMonth(parsedDate);
     const end = endOfMonth(parsedDate);
-
+    // console.log('transactions ', transactions);
     return (transactions || []).reduce((acc, curr) => {
       const tDate = new Date(curr.transactionDate);
       if (isWithinInterval(tDate, { start, end })) {

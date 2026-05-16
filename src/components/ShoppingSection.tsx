@@ -6,6 +6,7 @@ import { useShoppingStore } from '../context/useShoppingStore';
 import { useTranslation } from 'react-i18next';
 import { Tag, Plug } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useExpenseStore } from '../context/useExpenseStore';
 
 // ၁။ Interface ကို သေချာသတ်မှတ်ပေးလိုက်ပါ
 interface ShoppingSectionProps {
@@ -23,8 +24,8 @@ export const ShoppingSection = ({
   const themeColors = getColors();
   const { t } = useTranslation();
   const navigation = useNavigation<any>();
-
-  const { toggleBoughtStatus, deleteToBuyItem } = useShoppingStore();
+  const { toggleBoughtStatus, deleteToBuyItem } = useExpenseStore();
+  
   const [activeTab, setActiveTab] = useState('history');
 
   // မှတ်တမ်းမရှိရင် "ဝယ်ယူရန်" tab ကို အလိုအလျောက် ပြောင်းပေးမယ်

@@ -1,12 +1,14 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import i18n from '../i18n'; 
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../services/firebaseConfig';
-
+import { db, firebaseAuth } from '../services/firebaseConfig';
+import { useExpenseStore } from './useExpenseStore';
+import * as Notifications from 'expo-notifications';
 interface UserProfile {
   uid: string;
   email: string | null;
+  displayName: string | null; 
+  photoURL?: string | null;
   actionPassword?: string; 
   role?: string;           
 }
@@ -17,47 +19,143 @@ interface AuthState {
   language: 'mm' | 'en'; 
   user: UserProfile | null;
   loginAsGuest: () => Promise<void>;
- loginWithGoogle: (idToken: string) => Promise<void>;
+ loginWithGoogle: (user: any) => Promise<void>;
   setUser: (user: UserProfile | null) => void;
   logout: () => Promise<void>;
   setLanguage: (lang: 'mm' | 'en') => Promise<void>; 
   init: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   isGuest: false,
   user: null,
   isLoading: true,
   language: 'mm',
 
-  loginAsGuest: async () => {
+loginAsGuest: async () => {
+  try {
     await AsyncStorage.setItem('@auth_status', 'guest');
     set({ isGuest: true, user: null });
-  },
+    
+    console.log("Logged in as Guest and cleared old data.");
+  } catch (error) {
+    console.error("Guest login error:", error);
+  }
+},
 
-  // ✅ Google Login Function
- loginWithGoogle: async (idToken: string) => { // idToken ကို လက်ခံမယ်
-    try {
-      // ဒီနေရာမှာ idToken ကိုသုံးပြီး Firebase နဲ့ Login ဝင်တဲ့ logic ရေးလို့ရပါတယ်
-      console.log("Received Token:", idToken);
-      
-      // ဥပမာ- user data တစ်ခု သတ်မှတ်လိုက်မယ်
-      const mockUser = { uid: '123', email: 'user@gmail.com' }; 
-      set({ user: mockUser, isGuest: false });
-    } catch (error) {
-       console.error(error);
+
+  loginWithGoogle: async (user: any) => {
+  try {
+    const userDoc = await db.collection('users').doc(user.uid).get();
+    const isNewUser = !userDoc.exists; // Document မရှိရင် user အသစ်
+    const userDataFromFirestore = userDoc.data();
+
+    // --- ဒေတာများ Cloud ပေါ်သို့ ရွှေ့ခြင်း (Data Migration Logic) ---
+    const { useExpenseStore } = require('./useExpenseStore');
+    const expenseStore = useExpenseStore.getState();
+    const localTransactions = [...expenseStore.transactions];
+
+    if (localTransactions.length > 0) {
+      for (const transaction of localTransactions) {
+        await db.collection('transactions').doc(transaction.id).set({
+          ...transaction,
+          userId: user.uid 
+        });
+        useExpenseStore.setState({
+          transactions: expenseStore.transactions.filter((t: any) => t.id !== transaction.id)
+        });
+      }
+      const finalLocalData = useExpenseStore.getState().transactions;
+      await AsyncStorage.setItem('@transactions_storage_key', JSON.stringify(finalLocalData));
     }
-  },
+
+    // --- ၂။ Shopping Items (ဝယ်ယူရန်စာရင်းများ) ရွှေ့ခြင်း ✨ ---
+    const localShoppingItems = [...expenseStore.toBuyItems];
+    if (localShoppingItems.length > 0) {
+      for (const item of localShoppingItems) {
+        await db.collection('shopping_items').doc(item.id).set({
+          ...item,
+          userId: user.uid // Guest ကနေ User UID သို့ ပြောင်းပေးမယ်
+        });
+      }
+      // Cloud ပေါ်တင်ပြီးရင် Local AsyncStorage ကော Store ထဲကပါ ရှင်းပစ်မယ်
+      await AsyncStorage.removeItem('@to_buy_items'); 
+      useExpenseStore.setState({ toBuyItems: [] }); 
+    }
+    
+    await expenseStore.fetchTransactions();
+    await expenseStore.fetchToBuyItems();
+
+    // --- ✨ Welcome Notification ပြမည့် အပိုင်း ---
+    if (isNewUser) {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Welcome! ✨",
+          body: "သင့်ရဲ့ အသုံးစရိတ်ဒေတာတွေကို Google မှာ လုံခြုံစွာ သိမ်းဆည်းပေးထားပါတယ်ဗျာ။",
+        },
+        trigger: null,
+      });
+      // User အသစ်ဆိုရင် Firestore မှာ စာရင်းသွင်းမယ်
+      await db.collection('users').doc(user.uid).set({
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        createdAt: new Date().toISOString(),
+        role: 'user'
+      });
+    } else {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Welcome Back! 👋",
+          body: `ပျော်ရွှင်ဖွယ်နေ့လေးဖြစ်ပါစေ၊ ${user.displayName}`,
+        },
+        trigger: null,
+      });
+    }
+
+    const userData: UserProfile = {
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+      role: userDataFromFirestore?.role || 'user',
+      actionPassword: userDataFromFirestore?.actionPassword || '',
+    };
+
+    set({ user: userData, isGuest: false });
+    await AsyncStorage.setItem('@auth_status', 'logged_in');
+
+  } catch (error) {
+    console.error("Login Error:", error);
+  }
+},
 
   setUser: (userData) => {
     set({ user: userData, isGuest: false });
   },
   
-  logout: async () => {
-    await AsyncStorage.removeItem('@auth_status');
-    set({ isGuest: false, user: null });
-  },
 
+logout: async () => {
+  try {
+    const currentState = get(); 
+    const isGuestUser = currentState.isGuest;
+
+    if (!isGuestUser) {
+      await firebaseAuth.signOut();
+      set({ user: null, isGuest: false });
+      const { useExpenseStore } = require('./useExpenseStore'); 
+      await useExpenseStore.getState().clearAllData(); 
+      await AsyncStorage.removeItem('@user_passcode');
+    }
+
+    await AsyncStorage.removeItem('@auth_status');
+    
+    set({ user: null, isGuest: false });
+
+  } catch (error) {
+    console.error("Logout failed:", error);
+  }
+},
   setLanguage: async (lang) => {
     await AsyncStorage.setItem('@app_lang', lang);
     i18n.changeLanguage(lang);

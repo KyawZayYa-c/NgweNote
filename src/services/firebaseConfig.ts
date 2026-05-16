@@ -1,39 +1,23 @@
-// src/services/firebaseConfig.ts
-import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
-// @ts-ignore
-import { initializeAuth, getAuth, getReactNativePersistence } from 'firebase/auth';
-import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+import app from '@react-native-firebase/app';
+import firestore from '@react-native-firebase/firestore';
+import auth from '@react-native-firebase/auth';
 
-// Replace with your actual Firebase config
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyAXjupaMMC2jRAPqrv2PoAkFonjJ39Tt0w",
+  authDomain: "ngwenoteapp.firebaseapp.com",
+  projectId: "ngwenoteapp",
+  storageBucket: "ngwenoteapp.firebasestorage.app",
+  messagingSenderId: "925381789702",
+  appId: "1:925381789702:web:993f0f5b3be586e9f49b87",
+  measurementId: "G-4B8YH6LBVJ",
+  databaseURL: "https://ngwenoteapp-default-rtdb.firebaseio.com"
 };
 
-let app: any;
-let db: any;
-let auth: any;
-
-try {
-  app = initializeApp(firebaseConfig);
-  db = getFirestore(app);
-  
-  // persistence ကို string အဖြစ် ပြောင်းသုံးခြင်းဖြင့် type error ကို ကျော်လွှားနိုင်ပါတယ်
-  const persistence = (getReactNativePersistence as any)(ReactNativeAsyncStorage);
-  
-  auth = initializeAuth(app, {
-    persistence: persistence
-  });
-} catch (error) {
-  console.error('Firebase initialization failed:', error);
-  try {
-    auth = getAuth(app);
-  } catch (e) {}
+// App ကို တစ်ကြိမ်ပဲ Initialize လုပ်ဖို့ စစ်ပါတယ်
+if (!app.apps.length) {
+  app.initializeApp(firebaseConfig);
 }
 
-export { db, auth };
+// Export ထုတ်တဲ့အခါ နာမည်ရှင်းရှင်းလေးပဲ ပေးလိုက်ပါမယ်
+export const db = firestore();
+export const firebaseAuth = auth();

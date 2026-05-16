@@ -6,4 +6,4 @@ GoogleSignin.configure({
   webClientId: 'အစ်ကို့ရဲ့-WEB-CLIENT-ID', // ဒါကို Firebase Console ကနေ ယူရပါမယ်
 });
 
-export { auth };
+//export { auth };

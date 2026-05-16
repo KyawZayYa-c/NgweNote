@@ -1,3 +1,4 @@
+//src/screens/AnalyticsScreen.tsx
 import React, { useState, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Alert, StatusBar } from 'react-native';
 import { PieChart } from 'react-native-chart-kit';

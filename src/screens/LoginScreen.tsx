@@ -1,3 +1,4 @@
+//src/screens/LoginScreen.tsx
 import React, { useEffect } from 'react'; 
 import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Dimensions, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,10 +9,10 @@ import { User, Wallet, Languages, Moon, Sun, Edit3, XCircle } from 'lucide-react
 import { AntDesign } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
-import * as AuthSession from 'expo-auth-session';
-WebBrowser.maybeCompleteAuthSession();
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import auth from '@react-native-firebase/auth';
+
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // ✅ Navigation Type သတ်မှတ်ခြင်း
@@ -40,29 +41,55 @@ export const LoginScreen = () => {
     }
   };
 
-// Google Login Hook
-const [request, response, promptAsync] = Google.useAuthRequest({
-  // အခုရလာတဲ့ Android ID ကို ဒီမှာထည့်ပါ
-  androidClientId: "531229847477-ipcb1hun0gocdvoi2vbd4f2gop2dd87q.apps.googleusercontent.com",
-  
-  // အစောကရထားတဲ့ Web ID ကို ဒီမှာထည့်ပါ
-  webClientId: "531229847477-l5m0v26te2v6lue5gj6ncagtglo0am4h.apps.googleusercontent.com",
-}, {
-  // ဒီနေရာမှာ redirectUri ကို manual ထည့်ပေးလိုက်ပါ
-  native: AuthSession.makeRedirectUri({
-    scheme: 'ngwenote', // app.json ထဲက scheme name
-  }),
-});
+
   
   useEffect(() => {
-    if (response?.type === 'success') {
-      const { authentication } = response;
-      if (authentication?.idToken) {
-         loginWithGoogle(authentication.idToken); 
-      }
-    }
-  }, [response]);
+    GoogleSignin.configure({
+      webClientId: "925381789702-dgt9his7phe5kifhd4dsh0sv4ljctqho.apps.googleusercontent.com",
+      offlineAccess: true,
+    });
+  }, []);
+  
 
+const handleGoogleLogin = async () => {
+  try {
+    // ၁။ Google Sign-In ခေါ်မယ်
+    const response = await GoogleSignin.signIn();
+    
+    // Version အသစ်တွေမှာ response structure ကို console.log နဲ့ အရင်ကြည့်ပါ
+    // ပုံမှန်အားဖြင့် response.data.idToken (သို့) response.idToken ဖြစ်ပါတယ်
+    const idToken = response.data?.idToken || (response as any).idToken;
+
+    if (!idToken) {
+      throw new Error('Google Sign-In failed: No ID Token');
+    }
+
+    // ၂။ Credential တည်ဆောက်မယ်
+    const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+    
+    // ၃။ Firebase နဲ့ Sign-in ဝင်မယ်
+    const userCredential = await auth().signInWithCredential(googleCredential);
+    const firebaseUser = userCredential.user;
+
+    // ၄။ အစ်ကို့ရဲ့ Auth Store ထဲ သိမ်းမယ်
+    await loginWithGoogle({
+      uid: firebaseUser.uid,
+      email: firebaseUser.email,
+      displayName: firebaseUser.displayName,
+      photoURL: firebaseUser.photoURL
+    });
+    
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'MainTabs' }],
+    });
+    
+  } catch (error: any) {
+    console.log('Google Login Error Details:', error);
+    // Error code 12500 တို့ 7 တို့ဆိုရင် SHA-1 key မမှန်လို့ ဖြစ်တာ များပါတယ်
+    Alert.alert("Login Failed", "အကောင့်ဝင်လို့ မရပါ - " + error.message);
+  }
+};
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
       <StatusBar barStyle={theme === 'light' ? 'dark-content' : 'light-content'} />
@@ -155,13 +182,8 @@ const [request, response, promptAsync] = Google.useAuthRequest({
 
               <TouchableOpacity 
                 style={[styles.actionBtn, styles.googleBtn]} 
-                onPress={() => {promptAsync()}}
-    //             onPress={() => {
-    //               promptAsync({
-                    
-    //                 showInRecents: true
-    //               });
-    // }}
+                onPress={handleGoogleLogin} // promptAsync နေရာမှာ ဒါလေး ပြောင်းပါ
+                // onPress={() => {promptAsync()}}
                 activeOpacity={0.8}
               >
                 <AntDesign name="google" size={22} color="#EA4335" />
