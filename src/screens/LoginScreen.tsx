@@ -90,12 +90,16 @@ const handleGoogleLogin = async () => {
     Alert.alert("Login Failed", "အကောင့်ဝင်လို့ မရပါ - " + error.message);
   }
 };
+  
+  
   return (
     <View style={[styles.container, { backgroundColor: themeColors.background }]}>
-      <StatusBar barStyle={theme === 'light' ? 'dark-content' : 'light-content'} />
-      
+      <StatusBar barStyle={theme === 'light' ? 'dark-content' : 'light-content'}
+      backgroundColor="transparent" // အပေါ်ဆုံးဘားကို အရောင်ဖောက်မြင်ရအောင် လုပ်တာပါ
+  translucent={true}
+      />
       <LinearGradient 
-        colors={theme === 'light' ? [themeColors.primary, themeColors.secondary] : ['#111322', '#1A1D30']} 
+        colors={theme === 'light' ? ['#5e3fbb', '#e711ee'] : ['#25519a', '#162038']} 
         style={styles.topSection}
       >
         {!isEditMode && (
@@ -130,17 +134,32 @@ const handleGoogleLogin = async () => {
         )}
 
         <View style={styles.logoRow}>
-          <View style={styles.logoIcon}>
+          {/* 🌟 Logo Icon Box */}
+          <View style={[
+            styles.logoIcon, 
+            theme === 'dark' && { backgroundColor: '#1E293B', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1 }
+          ]}>
             {isEditMode ? (
               <Edit3 color={themeColors.primary} size={35} />
             ) : (
               <Wallet color={themeColors.primary} size={35} />
             )}
           </View>
+          
           <View style={styles.titleContainer}>
-            <Text style={styles.appTitle}>
-              {isEditMode ? "Edit Note" : "NgweNote"}
-            </Text>
+            <View style={styles.logoTextRow}>
+              <Text style={styles.appTitle}>
+                {isEditMode ? "Edit Note" : "Ngwe"}
+              </Text>
+              {!isEditMode && (
+                <Text style={[
+                  styles.appTitleNote, 
+                  { color: theme === 'light' ? '#688bac' : '#00D1FF' }
+                ]}>
+                  Note
+                </Text>
+              )}
+            </View>
             <Text style={styles.appDesc}>
               {isEditMode ? "ပြင်ဆင်လိုသည့် အချက်အလက်များကို ပြောင်းလဲပါ" : t('appDesc')}
             </Text>
@@ -149,23 +168,42 @@ const handleGoogleLogin = async () => {
       </LinearGradient>
 
       <View style={styles.cardContainer}>
-        <View style={[styles.card, { backgroundColor: themeColors.surface }]}>
-          
+        <View 
+          style={[
+            styles.card, 
+            { 
+              backgroundColor: themeColors.surface,
+              shadowColor: theme === 'dark' ? '#00D1FF' : '#000',
+              shadowOpacity: theme === 'dark' ? 0.25 : 0.12,
+              elevation: theme === 'dark' ? 20 : 12,
+              borderColor: theme === 'dark' ? 'rgba(255,255,255,0.08)' : '#E0E0E0',
+              borderWidth: theme === 'dark' ? 1.5 : 0,
+            }
+          ]}
+        >
           <Text style={[styles.cardTitle, { color: themeColors.text.primary }]}>
             {isEditMode ? "Transaction Details" : t('chooseOption')}
           </Text>
 
+          {/* Guest Login Button */}
           <TouchableOpacity 
-            style={[styles.actionBtn, { backgroundColor: isEditMode ? themeColors.primary : '#F0EEFF' }]} 
+            style={[
+              styles.actionBtn, 
+              { backgroundColor: isEditMode ? themeColors.primary : (theme === 'dark' ? '#24334d' : '#F0EEFF') },
+              theme === 'dark' && { borderWidth: 1, borderColor: 'rgba(0, 209, 255, 0.3)' }
+            ]} 
             onPress={handleAction}
             activeOpacity={0.8}
           >
             {isEditMode ? (
               <Edit3 color="#fff" size={22} />
             ) : (
-              <User color={themeColors.primary} size={22} />
+              <User color={theme === 'dark' ? '#00D1FF' : '#5e3fbb'} size={22} />
             )}
-            <Text style={[styles.btnText, { color: isEditMode ? '#fff' : '#1A1D1F' }]}>
+            <Text style={[
+              styles.btnText, 
+              { color: isEditMode ? '#fff' : (theme === 'dark' ? '#00D1FF' : '#1A1D1F') }
+            ]}>
               {isEditMode ? "Update Changes" : t('loginGuest')}
             </Text>
           </TouchableOpacity>
@@ -173,21 +211,27 @@ const handleGoogleLogin = async () => {
           {!isEditMode && (
             <>
               <View style={styles.dividerRow}>
-                <View style={[styles.line, { backgroundColor: themeColors.border }]} />
+                <View style={[styles.line, { backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : '#E0E0E0' }]} />
                 <Text style={[styles.orText, { color: themeColors.text.secondary }]}>
                   {t('or')}
                 </Text>
-                <View style={[styles.line, { backgroundColor: themeColors.border }]} />
+                <View style={[styles.line, { backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : '#E0E0E0' }]} />
               </View>
 
+              {/* Google Login Button */}
               <TouchableOpacity 
-                style={[styles.actionBtn, styles.googleBtn]} 
-                onPress={handleGoogleLogin} // promptAsync နေရာမှာ ဒါလေး ပြောင်းပါ
-                // onPress={() => {promptAsync()}}
+                style={[
+                  styles.actionBtn, 
+                  styles.googleBtn,
+                  theme === 'dark' && { backgroundColor: '#1E293B', borderColor: 'rgba(255,255,255,0.15)', borderWidth: 1.5 }
+                ]} 
+                onPress={handleGoogleLogin}
                 activeOpacity={0.8}
               >
                 <AntDesign name="google" size={22} color="#EA4335" />
-                <Text style={[styles.btnText, { color: '#1A1D1F' }]}>{t('loginGoogle')}</Text>
+                <Text style={[styles.btnText, { color: theme === 'dark' ? '#F8FAFC' : '#1A1D1F' }]}>
+                  {t('loginGoogle')}
+                </Text>
               </TouchableOpacity>
             </>
           )}
@@ -205,24 +249,39 @@ const handleGoogleLogin = async () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  topSection: { height: '45%', justifyContent: 'center', alignItems: 'center', borderBottomLeftRadius: 50, borderBottomRightRadius: 50 },
+  topSection: { height: '48%', justifyContent: 'center', alignItems: 'center', borderBottomLeftRadius: 50, borderBottomRightRadius: 50 },
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 15, width: '80%', marginTop: 20 },
   titleContainer: { flex: 1 },
+  logoTextRow: { flexDirection: 'row', alignItems: 'center' },
   appTitle: { fontSize: fontSize.huge, fontWeight: 'bold', color: '#fff' },
-  appDesc: { fontSize: fontSize.sm, marginTop: 5, color: 'rgba(255,255,255,0.9)' },
-  cardContainer: { alignItems: 'center', marginTop: -70 },
-  card: { width: SCREEN_WIDTH * 0.88, padding: 28, borderRadius: 30, elevation: 20, shadowOpacity: 0.15, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowRadius: 15 },
+  appTitleNote: { fontSize: fontSize.huge, fontWeight: 'bold', marginLeft: 5 },
+  appDesc: { fontSize: fontSize.sm, marginTop: 5, color: 'rgba(255,255,255,0.85)', fontWeight: '500' },
+  
+  // Card Layout & Depths
+  cardContainer: { alignItems: 'center', marginTop: -80 },
+  card: { 
+    width: SCREEN_WIDTH * 0.88, 
+    padding: 28, 
+    borderRadius: 30, 
+    shadowOffset: { width: 0, height: 12 }, 
+    shadowRadius: 16 
+  },
   cardTitle: { textAlign: 'center', marginBottom: 25, fontSize: fontSize.md, fontWeight: '700' },
-  actionBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, height: 58, borderRadius: 18, width: '100%', elevation: 2 },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, height: 58, borderRadius: 18, width: '100%' },
   btnText: { fontWeight: '700', fontSize: fontSize.md },
   googleBtn: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e0e0e0' },
   dividerRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 22 },
   line: { flex: 1, height: 1 },
   orText: { marginHorizontal: 15, fontSize: fontSize.xs, fontWeight: '600' },
-  langBtn: { position: 'absolute', top: 50, left: 20, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.25)', padding: 10, borderRadius: 20 },
-  themeBtn: { position: 'absolute', top: 50, right: 20, backgroundColor: 'rgba(255,255,255,0.25)', width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  
+  // Top Floating Bars
+  langBtn: { position: 'absolute', top: 50, left: 20, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.22)', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20 },
+  themeBtn: { position: 'absolute', top: 50, right: 20, backgroundColor: 'rgba(255,255,255,0.22)', width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center' },
   langText: { color: '#fff', fontSize: fontSize.xs, fontWeight: '600' },
+  
+  // Logo Box
   logoIcon: { width: 70, height: 70, backgroundColor: '#fff', borderRadius: 25, justifyContent: 'center', alignItems: 'center', elevation: 10 },
+  
   footerContainer: { position: 'absolute', bottom: 25, width: '100%', paddingHorizontal: 20, alignItems: 'center' },
   footerText: { fontSize: fontSize.xs, textAlign: 'center', lineHeight: 20, fontWeight: '500', opacity: 0.85 },
 });

@@ -8,7 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useThemeStore } from '../context/useThemeStore';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, Save, Tag, Calendar, Edit3, Plus, X, Lock } from 'lucide-react-native';
+import { ChevronLeft, Save, Tag, Calendar, Edit3, Plus, X } from 'lucide-react-native';
 import { CategoryModal } from '../components/CategoryModal';
 import { useExpenseStore } from '../context/useExpenseStore';
 
@@ -126,10 +126,14 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.container, { backgroundColor: themeColors.background }]}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
+      
+      {/* ၄ထောင့် ညီညီလေးနဲ့ Clean ဖြစ်အောင် border radius ဖြုတ်လိုက်ပါတယ် */}
       <LinearGradient colors={themeColors.primaryGradient} style={styles.header}>
         <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}><ChevronLeft color="#fff" size={28} /></TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
+            <ChevronLeft color="#fff" size={28} />
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>{isEditMode ? "ပြင်ဆင်ရန်" : t('createRecord')}</Text>
           <View style={{ width: 28 }} />
         </View>
@@ -156,6 +160,7 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
             <TextInput 
               style={[styles.amountInput, { color: themeColors.text.primary }]} 
               value={amount} placeholder="0" keyboardType="decimal-pad"
+              placeholderTextColor={themeColors.text.secondary}
               onChangeText={(text) => setAmount(text.replace(/[^0-9.]/g, ''))}
             />
           </View>
@@ -167,6 +172,7 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
             style={[styles.iconBox, { backgroundColor: themeColors.surface, borderColor: themeColors.border }, type === 'income' && { opacity: 0.6 }]} 
             onPress={() => type === 'expense' && setCatModal(true)} 
             disabled={type === 'income'}
+            activeOpacity={0.7}
           >
             <Tag size={18} color={themeColors.primary} />
             <Text style={[styles.boxText, { color: themeColors.text.primary }]} numberOfLines={1}>
@@ -175,7 +181,12 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
           </TouchableOpacity>
 
           {/* Date Selector */}
-          <TouchableOpacity style={[styles.iconBox, { backgroundColor: themeColors.surface, borderColor: themeColors.border }, isBatching && { opacity: 0.6 }]} onPress={() => !isBatching && setShowDatePicker(true)} disabled={isBatching}>
+          <TouchableOpacity 
+            style={[styles.iconBox, { backgroundColor: themeColors.surface, borderColor: themeColors.border }, isBatching && { opacity: 0.6 }]} 
+            onPress={() => !isBatching && setShowDatePicker(true)} 
+            disabled={isBatching}
+            activeOpacity={0.7}
+          >
             <Calendar size={18} color={themeColors.primary} />
             <Text style={[styles.boxText, { color: themeColors.text.primary }]}>
               {date.toDateString() === new Date().toDateString() ? t('today') : date.toLocaleDateString()}
@@ -190,7 +201,7 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
           <Text style={[styles.label, { color: themeColors.text.secondary }]}>{t('note')}</Text>
           <View style={[styles.noteBox, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
             <Edit3 size={18} color={themeColors.text.secondary} />
-            <TextInput style={[styles.noteInput, { color: themeColors.text.primary }]} multiline value={note} onChangeText={setNote} placeholder={t('writeNote')} />
+            <TextInput style={[styles.noteInput, { color: themeColors.text.primary }]} multiline value={note} onChangeText={setNote} placeholder={t('writeNote')} placeholderTextColor={themeColors.text.secondary} />
           </View>
         </View>
 
@@ -200,26 +211,103 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
             onPress={handleAddToBatch} 
             disabled={isInsufficientBalance}
             style={[styles.addToListBtn, { borderColor: themeColors.primary, opacity: isInsufficientBalance ? 0.7 : 1 }]}
+            activeOpacity={0.7}
           >
             <Plus size={20} color={themeColors.primary} />
             <Text style={[styles.addToListText, { color: themeColors.primary }]}>{t('addAnother')}</Text>
           </TouchableOpacity>
         )}
 
-        {/* ✅ Save Button Logic */}
+        {/* Preview Items List UI */}
+        {isBatching && (
+          <View style={{ marginBottom: 15 }}>
+            <Text style={[styles.label, { color: themeColors.text.secondary, marginBottom: 8 }]}>
+              PREVIEW ({batchItems.length})
+            </Text>
+            
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 10, paddingBottom: 5 }}
+            >
+              {batchItems.map((item) => (
+                <View 
+                  key={item.id} 
+                  style={{
+                    width: 130, 
+                    padding: 10,
+                    borderRadius: 14,
+                    backgroundColor: themeColors.surface,
+                    borderWidth: 1,
+                    borderColor: themeColors.border,
+                    position: 'relative'
+                  }}
+                >
+                  <TouchableOpacity 
+                    onPress={() => setBatchItems(batchItems.filter(b => b.id !== item.id))}
+                    style={{ 
+                      position: 'absolute', 
+                      top: 6, 
+                      right: 6, 
+                      padding: 2,
+                      zIndex: 10
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <X size={14} color="#FF6B6B" />
+                  </TouchableOpacity>
+
+                  <Text 
+                    numberOfLines={1} 
+                    style={{ 
+                      fontSize: 14, 
+                      fontWeight: '800', 
+                      color: item.type === 'income' ? '#10B981' : '#EF4444',
+                      marginTop: 8,
+                      marginBottom: 2
+                    }}
+                  >
+                    {item.amount.toLocaleString()}
+                  </Text>
+
+                  <Text 
+                    numberOfLines={1} 
+                    style={{ 
+                      fontSize: 12, 
+                      color: themeColors.text.secondary,
+                      fontWeight: '600'
+                    }}
+                  >
+                    {item.title}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* ပြင်ဆင်လိုက်သည့် Save Button UI */}
         <TouchableOpacity 
           onPress={handleSaveAll} 
           disabled={isInsufficientBalance}
+          activeOpacity={0.8}
+          style={[
+            styles.saveBtn, 
+            theme === 'dark' && { borderWidth: 1, borderColor: 'rgba(0, 209, 255, 0.3)' },
+            isInsufficientBalance && { opacity: 0.5 }
+          ]}
         >
           <LinearGradient 
-            colors={themeColors.primaryBtn || ['#6A5AE0', '#00D1FF']} 
-            style={[styles.saveBtn, isInsufficientBalance && { opacity: 0.7 }]} // ငွေမလုံလောက်ရင် နည်းနည်းမှိန်မယ်
-          >
+            colors={themeColors.primaryBtn || ['#6A5AE0', '#010102']} 
+            style={[StyleSheet.absoluteFillObject, { borderRadius: 20 }]}
+          />
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, zIndex: 1 }}>
             <Save color="#fff" size={20} />
             <Text style={styles.saveText}>
               {isBatching ? `${t('saveAll')} (${batchItems.length + (amount ? 1 : 0)})` : (isEditMode ? t('update') : t('save'))}
             </Text>
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
       </ScrollView>
 
@@ -230,7 +318,11 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { height: 100, justifyContent: 'flex-end', paddingBottom: 20, borderBottomLeftRadius: 35, borderBottomRightRadius: 35 },
+  header: { 
+    height: Platform.OS === 'ios' ? 110 : 90, 
+    justifyContent: 'flex-end', 
+    paddingBottom: 15,
+  },
   headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20 },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
   backBtn: { padding: 4 },
@@ -245,14 +337,14 @@ const styles = StyleSheet.create({
   label: { fontSize: 11, marginBottom: 6, marginTop: 4, fontWeight: '700', textTransform: 'uppercase' },
   inputBox: { flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 20, borderWidth: 1.5 },
   currencySymbol: { fontSize: 20, marginRight: 10, fontWeight: '700' },
-  amountInput: { flex: 1, fontSize: 24, fontWeight: '700' },
+  amountInput: { flex: 1, fontSize: 24, fontWeight: '700', paddingVertical: 0 },
   row: { flexDirection: 'row', gap: 12, marginBottom: 15 },
   iconBox: { flex: 1, flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 20, gap: 10, borderWidth: 1.5 },
   boxText: { fontSize: 14, fontWeight: '600' },
   noteBox: { flexDirection: 'row', padding: 15, borderRadius: 20, borderWidth: 1.5, minHeight: 80 },
-  noteInput: { flex: 1, marginLeft: 10, fontSize: 15, textAlignVertical: 'top' },
+  noteInput: { flex: 1, marginLeft: 10, fontSize: 15, textAlignVertical: 'top', paddingVertical: 0 },
   addToListBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 12, borderRadius: 15, borderStyle: 'dashed', borderWidth: 1.5, marginBottom: 20, gap: 8 },
   addToListText: { fontWeight: '700', fontSize: 14 },
-  saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 60, borderRadius: 20, gap: 12, elevation: 8 },
+  saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 60, borderRadius: 20, gap: 12, elevation: 4, overflow: 'hidden' },
   saveText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });

@@ -1,6 +1,7 @@
+
 //src/screens/AnalyticsScreen.tsx
 import React, { useState, useMemo, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Alert, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Alert, StatusBar, Platform } from 'react-native';
 import { PieChart } from 'react-native-chart-kit';
 import ViewShot from 'react-native-view-shot';
 import { captureRef } from 'react-native-view-shot';
@@ -111,41 +112,54 @@ export const AnalyticsScreen = () => {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: themeColors.background }}>
-      <StatusBar barStyle="light-content" />
+    <View style={{ flex: 1, backgroundColor: themeColors.background , paddingBottom: 70 }}>
+      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
       
+      {/* ၄ထောင့် ပုံစံ ဖြစ်သွားအောင် border radius ဖြုတ်ထားတဲ့ Header ဖြစ်ပါတယ် */}
       <LinearGradient colors={themeColors.primaryGradient} style={styles.navBar}>
         <View style={styles.navContent}>
           <ChartIcon color="#fff" size={24} />
           <Text style={styles.navTitle}>{t('analytics')}</Text>
         </View>
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-          {availableFilters.map((f) => (
-            <TouchableOpacity 
-              key={f.id} 
-              onPress={() => setActiveFilter(f.id)}
-              style={[styles.filterBtn, activeFilter === f.id && styles.activeFilterBtn]}
-            >
-              <Text style={[styles.filterText, { color: activeFilter === f.id ? themeColors.primary : '#fff' }]}>{f.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
       </LinearGradient>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+      {/* အောက်ခြေမှာ Card တွေ အပြည့်ပေါ်နေစေဖို့ PaddingBottom ကို 150 ထားပေးပါတယ် */}
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
+        
+        {/* လ တွေ နှစ် တွေကို အောက်မှာ Card လေးနဲ့ သီးသန့်ပြပေးထားတာပါ */}
+        <View style={[styles.filterCard, { backgroundColor: themeColors.surface }]}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {availableFilters.map((f) => (
+              <TouchableOpacity 
+                key={f.id} 
+                onPress={() => setActiveFilter(f.id)}
+                style={[
+                  styles.filterBtn, 
+                  { backgroundColor: theme === 'dark' ? '#2A2D37' : '#E5E7EB' },
+                  activeFilter === f.id && [styles.activeFilterBtn, { backgroundColor: themeColors.primary }]
+                ]}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.filterText, { color: activeFilter === f.id ? '#fff' : themeColors.text.primary }]}>
+                  {f.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
         <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 0.9 }}>
-          <View style={{ backgroundColor: themeColors.background, paddingTop: 20 }}>
+          <View style={{ backgroundColor: themeColors.background, paddingTop: 10 }}>
             
             <View style={styles.kpiRow}>
-              {/* ✅ Income Card: အစိမ်းနုရောင် နောက်ခံ */}
+              {/* Income Card: အစိမ်းနုရောင် နောက်ခံ */}
               <View style={[styles.kpiCard, { backgroundColor: theme === 'dark' ? 'rgba(34, 197, 94, 0.15)' : '#E8F5E9' }]}>
                 <TrendingUp color="#22C55E" size={20} />
                 <Text style={[styles.kpiLabel, { color: themeColors.text.secondary }]}>{t('totalIncome')}</Text>
                 <Text style={[styles.kpiValue, { color: '#22C55E' }]}>{analyticsData.income.toLocaleString()} Ks</Text>
               </View>
 
-              {/* ✅ Expense Card: အနီနုရောင် နောက်ခံ */}
+              {/* Expense Card: အနီနုရောင် နောက်ခံ */}
               <View style={[styles.kpiCard, { backgroundColor: theme === 'dark' ? 'rgba(255, 107, 107, 0.15)' : '#FFEBEE' }]}>
                 <TrendingDown color="#FF6B6B" size={20} />
                 <Text style={[styles.kpiLabel, { color: themeColors.text.secondary }]}>{t('totalExpense')}</Text>
@@ -184,7 +198,7 @@ export const AnalyticsScreen = () => {
           </View>
         </ViewShot>
         
-        <TouchableOpacity onPress={saveAsImage} style={[styles.exportBtn, { borderColor: themeColors.primary }]}>
+        <TouchableOpacity onPress={saveAsImage} style={[styles.exportBtn, { borderColor: themeColors.primary }]} activeOpacity={0.7}>
             <ImageIcon color={themeColors.primary} size={20} />
             <Text style={{ color: themeColors.primary, fontWeight: 'bold' }}>{t('saveAsImage')}</Text>
         </TouchableOpacity>
@@ -194,14 +208,32 @@ export const AnalyticsScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  navBar: { paddingHorizontal: 20, paddingTop: 50, paddingBottom: 25, borderBottomLeftRadius: 35, borderBottomRightRadius: 35 },
-  navContent: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
+  navBar: { 
+    paddingHorizontal: 20, 
+    paddingTop: Platform.OS === 'ios' ? 60 : 45, 
+    paddingBottom: 20,
+  },
+  navContent: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   navTitle: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
-  filterScroll: { flexDirection: 'row' },
-  filterBtn: { paddingVertical: 8, paddingHorizontal: 18, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.2)', marginRight: 10 },
-  activeFilterBtn: { backgroundColor: '#fff', elevation: 5 },
+  
+  // လ/နှစ် Filter ပြသရန် သီးသန့် Card Style
+  filterCard: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 10,
+    padding: 12,
+    borderRadius: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  filterBtn: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 12, marginRight: 8 },
+  activeFilterBtn: { elevation: 3 },
   filterText: { fontSize: 13, fontWeight: 'bold' },
-  kpiRow: { flexDirection: 'row', paddingHorizontal: 12, gap: 10, marginBottom: 25 },
+  
+  kpiRow: { flexDirection: 'row', paddingHorizontal: 20, gap: 10, marginBottom: 25, marginTop: 10 },
   kpiCard: { 
     flex: 1, 
     padding: 15, 

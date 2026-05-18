@@ -1,9 +1,6 @@
 //src/screens/AddToBuyScreen.tsx
 import React, { useState, useEffect } from 'react';
-import { useShoppingStore } from '../context/useShoppingStore';
-// AddToBuyScreen.tsx မှာ ဒီလိုပြင်ပါ
- import { useExpenseStore } from '../context/useExpenseStore'; // useShoppingStore အစား ဒါကိုသုံးပါ
-
+import { useExpenseStore } from '../context/useExpenseStore'; 
 import { 
   View, Text, StyleSheet, TextInput, TouchableOpacity, 
   ScrollView, Platform, KeyboardAvoidingView, StatusBar, Alert 
@@ -18,10 +15,7 @@ export const AddToBuyScreen = ({ navigation, route }: any) => {
   const { theme, getColors } = useThemeStore();
   const themeColors = getColors();
   
-  // ✅ Store က function တွေ ခေါ်မယ်
-  //const { addToBuyItem, updateToBuyItem } = useShoppingStore();
-  const { addToBuyItem, updateToBuyItem } = useExpenseStore(); // ဒီမှာလည်း 
-  // ✅ Route Params ကနေ Edit လုပ်မယ့် Data ကို ဖမ်းမယ်
+  const { addToBuyItem, updateToBuyItem } = useExpenseStore(); 
   const editData = route.params?.editData;
   const isEditMode = !!editData;
 
@@ -34,16 +28,14 @@ export const AddToBuyScreen = ({ navigation, route }: any) => {
 
   const isBatching = itemList.length > 0;
 
-  // ✅ Edit Mode ဆိုရင် Input တွေထဲ Data ကြိုဖြည့်မယ်
   useEffect(() => {
     if (isEditMode) {
       setItemName(editData.itemName);
       setUnitPrice(editData.unitPrice.toString());
-      setCount(editData.count.toString());
+      count && setCount(editData.count.toString());
     }
   }, [isEditMode, editData]);
 
-  // စုစုပေါင်း金額ကို တွက်ချက်ခြင်း
   useEffect(() => {
     const price = parseFloat(unitPrice) || 0;
     const qty = parseInt(count) || 0;
@@ -59,7 +51,7 @@ export const AddToBuyScreen = ({ navigation, route }: any) => {
 
   const addToList = () => {
     if (!itemName || !unitPrice) {
-      Alert.alert(t('warning'), "အချက်အလက်အပြည့်အစုံထည့်ပါ");
+      Alert.alert(t('warning'), t('alertFillAll'));
       return;
     }
 
@@ -83,7 +75,7 @@ export const AddToBuyScreen = ({ navigation, route }: any) => {
     try {
       if (isEditMode) {
         if (!itemName || !unitPrice) {
-          Alert.alert(t('warning'), "အချက်အလက်အပြည့်အစုံထည့်ပါ");
+          Alert.alert(t('warning'), t('alertFillAll'));
           return;
         }
         
@@ -93,10 +85,7 @@ export const AddToBuyScreen = ({ navigation, route }: any) => {
           count: parseInt(count),
         });
       } else {
-        // --- အသစ်သိမ်းခြင်း Logic (Batch Save ပါဝင်သည်) ---
         const itemsToSave = [...itemList];
-        console.log('Item to save => ', itemsToSave)
-        // Input မှာ ကျန်နေတာရှိရင် ထည့်ပေါင်းမယ်
         if (itemName && unitPrice) {
           itemsToSave.push({
             itemName,
@@ -106,11 +95,10 @@ export const AddToBuyScreen = ({ navigation, route }: any) => {
         }
 
         if (itemsToSave.length === 0) {
-          Alert.alert(t('warning'), "ပစ္စည်းစာရင်း ထည့်သွင်းပေးပါ");
+          Alert.alert(t('warning'), t('alertNoItems'));
           return;
         }
 
-        // တစ်ခုချင်းစီကို Store ထဲ သိမ်းမယ်
         for (const item of itemsToSave) {
           await addToBuyItem({
             itemName: item.itemName,
@@ -118,13 +106,11 @@ export const AddToBuyScreen = ({ navigation, route }: any) => {
             count: item.count
           });
         }
-        console.log('addToByItems => ', addToBuyItem);
       }
-      
       
       navigation.goBack();
     } catch (error) {
-      Alert.alert("Error", "သိမ်းဆည်းရာတွင် အမှားအယွင်းရှိပါသည်။");
+      Alert.alert(t('error'), t('alertSaveError'));
     }
   };
 
@@ -133,15 +119,15 @@ export const AddToBuyScreen = ({ navigation, route }: any) => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
       style={[styles.container, { backgroundColor: themeColors.background }]}
     >
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
       
       <LinearGradient colors={themeColors.primaryGradient} style={styles.header}>
         <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
             <ChevronLeft color="#fff" size={28} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
-            {isEditMode ? "စာရင်းပြင်ဆင်ရန်" : "ဝယ်ယူရန်စာရင်းထည့်ရန်"}
+            {isEditMode ? t('editListTitle') : t('addToListTitle')}
           </Text>
           <View style={{ width: 28 }} />
         </View>
@@ -150,14 +136,14 @@ export const AddToBuyScreen = ({ navigation, route }: any) => {
       <ScrollView contentContainerStyle={styles.formContainer} keyboardShouldPersistTaps="handled">
         
         <View style={styles.inputWrapper}>
-          <Text style={[styles.label, { color: themeColors.text.secondary }]}>ပစ္စည်းအမည်</Text>
+          <Text style={[styles.label, { color: themeColors.text.secondary }]}>{t('labelItemName')}</Text>
           <View style={[styles.inputBox, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
             <ShoppingBag size={18} color={themeColors.primary} style={{ marginRight: 10 }} />
             <TextInput 
               style={[styles.mainInput, { color: themeColors.text.primary }]}
               value={itemName}
-              placeholder="ပစ္စည်းအမည် ရိုက်ထည့်ပါ"
-              placeholderTextColor={theme === 'dark' ? '#9CA3AF' : '#6B7280'} 
+              placeholder={t('placeholderItemName')}
+              placeholderTextColor={themeColors.text.secondary} 
               onChangeText={setItemName}
             />
           </View>
@@ -165,14 +151,14 @@ export const AddToBuyScreen = ({ navigation, route }: any) => {
 
         <View style={styles.row}>
           <View style={{ flex: 1.5 }}>
-            <Text style={[styles.label, { color: themeColors.text.secondary }]}>ဈေးနှုန်း</Text>
+            <Text style={[styles.label, { color: themeColors.text.secondary }]}>{t('labelPrice')}</Text>
             <View style={[styles.inputBox, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
               <DollarSign size={18} color={themeColors.primary} />
               <TextInput 
                 style={[styles.mainInput, { color: themeColors.text.primary, marginLeft: 5 }]}
                 value={unitPrice}
                 placeholder="0.00"
-                placeholderTextColor={theme === 'dark' ? '#9CA3AF' : '#6B7280'} 
+                placeholderTextColor={themeColors.text.secondary} 
                 keyboardType="decimal-pad"
                 onChangeText={(text) => setUnitPrice(text.replace(/[^0-9.]/g, ''))}
               />
@@ -180,12 +166,13 @@ export const AddToBuyScreen = ({ navigation, route }: any) => {
           </View>
 
           <View style={{ flex: 1 }}>
-            <Text style={[styles.label, { color: themeColors.text.secondary }]}>အရေအတွက်</Text>
+            <Text style={[styles.label, { color: themeColors.text.secondary }]}>{t('labelCount')}</Text>
             <View style={[styles.inputBox, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
               <TextInput 
                 style={[styles.mainInput, { color: themeColors.text.primary, textAlign: 'center' }]}
                 value={count}
                 keyboardType="numeric"
+                placeholderTextColor={themeColors.text.secondary}
                 onChangeText={(text) => setCount(text.replace(/[^0-9]/g, ''))}
               />
             </View>
@@ -193,34 +180,37 @@ export const AddToBuyScreen = ({ navigation, route }: any) => {
         </View>
 
         <View style={styles.totalDisplay}>
-          <Text style={[styles.totalLabel, { color: themeColors.text.secondary }]}>စုစုပေါင်းကျသင့်ငွေ:</Text>
+          <Text style={[styles.totalLabel, { color: themeColors.text.secondary }]}>{t('labelTotalAmount')}</Text>
           <Text style={[styles.totalAmount, { color: themeColors.primary }]}>
             {totalPrice.toLocaleString()} Ks
           </Text>
         </View>
 
-        {/* ✅ Edit Mode မဟုတ်မှသာ "ထပ်ထည့်မည်" ခလုတ်ကို ပြပါမည် */}
         {!isEditMode && (
-          <TouchableOpacity onPress={addToList} style={[styles.addToListBtn, { borderColor: themeColors.primary }]}>
+          <TouchableOpacity 
+            onPress={addToList} 
+            style={[styles.addToListBtn, { borderColor: themeColors.primary }]}
+            activeOpacity={0.7}
+          >
             <Plus size={20} color={themeColors.primary} />
-            <Text style={[styles.addToListText, { color: themeColors.primary }]}>ပစ္စည်းထပ်ထည့်မည်</Text>
+            <Text style={[styles.addToListText, { color: themeColors.primary }]}>{t('addMoreItemBtn')}</Text>
           </TouchableOpacity>
         )}
 
-        {/* Preview List for Batching */}
         {!isEditMode && isBatching && (
           <View style={styles.batchContainer}>
-            <Text style={[styles.batchTitle, { color: themeColors.text.secondary }]}>{t('preview')} ({itemList.length})</Text>
+            <Text style={[styles.batchTitle, { color: themeColors.text.secondary }]}>{t('previewTitle')} ({itemList.length})</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.batchScroll}>
               {itemList.map((item) => (
                 <TouchableOpacity 
                   key={item.id} 
                   style={[styles.batchCard, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]} 
                   onPress={() => removeFromList(item.id)}
+                  activeOpacity={0.7}
                 >
                   <View style={styles.batchCardHeader}>
                     <Text style={[styles.batchAmount, { color: themeColors.primary }]}>{item.totalPrice.toLocaleString()}</Text>
-                    <X size={14} color="#9CA3AF" />
+                    <X size={14} color={themeColors.text.secondary} />
                   </View>
                   <Text style={[styles.batchNote, { color: themeColors.text.primary }]} numberOfLines={1}>{item.itemName}</Text>
                 </TouchableOpacity>
@@ -229,13 +219,28 @@ export const AddToBuyScreen = ({ navigation, route }: any) => {
           </View>
         )}
 
-        <TouchableOpacity onPress={handleFinalSave}>
-          <LinearGradient colors={themeColors.primaryBtn || ['#6A5AE0', '#00D1FF']} style={styles.saveBtn}>
+        <TouchableOpacity 
+          onPress={handleFinalSave} 
+          activeOpacity={0.8}
+          style={[
+            styles.saveBtn, 
+            theme === 'dark' && { borderWidth: 1, borderColor: 'rgba(0, 209, 255, 0.3)' }
+          ]} 
+        >
+          <LinearGradient 
+            colors={themeColors.primaryBtn || ['#6A5AE0', '#010102']} 
+            style={[StyleSheet.absoluteFillObject, { borderRadius: 20 }]}
+          />
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <Save color="#fff" size={20} />
             <Text style={styles.saveText}>
-              {isEditMode ? "ပြင်ဆင်ချက်များကိုသိမ်းမည်" : (isBatching ? `အားလုံးသိမ်းဆည်းမည် (${itemList.length + (itemName ? 1 : 0)})` : "သိမ်းဆည်းမည်")}
+              {isEditMode 
+                ? t('editBtnText') 
+                : (isBatching ? `${t('saveAllBtnText')} (${itemList.length + (itemName ? 1 : 0)})` : t('saveBtnText'))
+              }
             </Text>
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
 
       </ScrollView>
@@ -243,10 +248,13 @@ export const AddToBuyScreen = ({ navigation, route }: any) => {
   );
 };
 
-// Styles အပိုင်းက အစ်ကို့ Code အတိုင်းပဲ အသုံးပြုနိုင်ပါတယ် (ပြောင်းလဲစရာမလိုပါ)
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { height: 100, justifyContent: 'flex-end', paddingBottom: 20, borderBottomLeftRadius: 35, borderBottomRightRadius: 35 },
+  header: { 
+    height: Platform.OS === 'ios' ? 110 : 90, 
+    justifyContent: 'flex-end', 
+    paddingBottom: 15,
+  },
   headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20 },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
   backBtn: { padding: 4 },
@@ -254,7 +262,7 @@ const styles = StyleSheet.create({
   inputWrapper: { marginBottom: 18 },
   label: { fontSize: 11, marginBottom: 6, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
   inputBox: { flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 20, borderWidth: 1.5 },
-  mainInput: { flex: 1, fontSize: 18, fontWeight: '600' },
+  mainInput: { flex: 1, fontSize: 16, fontWeight: '600', paddingVertical: 0 },
   row: { flexDirection: 'row', gap: 12, marginBottom: 18 },
   totalDisplay: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, paddingHorizontal: 5 },
   totalLabel: { fontSize: 14, fontWeight: '600' },
@@ -268,6 +276,6 @@ const styles = StyleSheet.create({
   batchCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   batchAmount: { fontSize: 14, fontWeight: '800' },
   batchNote: { fontSize: 12, fontWeight: '600' },
-  saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 60, borderRadius: 20, gap: 12, elevation: 8 },
+  saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 60, borderRadius: 20, gap: 12, elevation: 4, overflow: 'hidden' },
   saveText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });
