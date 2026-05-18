@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { 
   User, Lock, Unlock, Languages, Moon, ChevronRight, LogOut, Trash2, 
   CheckCircle2, RefreshCw, BellRing, AlertTriangle, Send, Clock, 
-  ShieldCheck, ShieldAlert 
+  ShieldCheck, ShieldAlert , Settings
 } from 'lucide-react-native';
 import { AntDesign } from '@expo/vector-icons';
 import { useThemeStore } from '../context/useThemeStore';
@@ -245,8 +245,12 @@ const handleResetAction = async () => {
     <View style={{ flex: 1, backgroundColor: themeColors.background }}>
       <StatusBar barStyle="light-content" />
       
-      <LinearGradient colors={themeColors.primaryGradient} style={styles.navBar}>
-        <Text style={styles.navTitle}>{t('settings')}</Text>
+      <LinearGradient colors={themeColors.primaryGradient || ['#4A6CF7', '#6A85F1']} style={styles.header}>
+        {/* အပေါ်ဆုံးတွင် ပြသပေးမည့် Settings Name နှင့် Icon (Analytics အတိုင်း ဘယ်ဘက်ကပ်ထားသည်) */}
+        <View style={styles.screenHeaderTitleRow}>
+          <Settings size={24} color="#fff" />
+          <Text style={styles.screenHeaderTitleText}>{t('settings')}</Text>
+        </View>
       </LinearGradient>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
@@ -599,6 +603,25 @@ const handleResetAction = async () => {
      
 
 const styles = StyleSheet.create({
+  // Analytics ထဲကအတိုင်း Padding Vertical များနှင့် Layout ညှိပေးထားမှု
+  header: { 
+    paddingTop: 45, 
+    paddingBottom: 20, 
+    paddingHorizontal: 20,
+  },
+  // Analytics ထဲကအတိုင်း အိုင်ကွန်နှင့် စာသားကို ဘယ်ဘက်သို့ ကပ်ပြီး စီတန်းပေးသည့် Style
+  screenHeaderTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start', // အလယ်ကနေ ဘယ်ဘက်ကပ်သို့ ပြောင်းလဲထားသည်
+    gap: 12,                      // Icon နှင့် Text ကြား အကွာအဝေး
+    width: '100%',
+  },
+  screenHeaderTitleText: {
+    fontSize: 24,                 // Analytics အတိုင်း Font Size ကို ၂၄ သို့ တိုးမြှင့်ထားသည်
+    fontWeight: 'bold',
+    color: '#fff',
+  },
   modalActionRow: { 
     flexDirection: 'row', 
     width: '100%', 

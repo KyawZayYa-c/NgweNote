@@ -1,5 +1,5 @@
 //src/screens/HistoryScreen.tsx
-import React, { useState, useMemo, useRef } from 'react'; // useRef ထပ်ထည့်ထားပါတယ်
+import React, { useState, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, Modal, ScrollView } from 'react-native';
 import { useExpenseStore } from '../context/useExpenseStore';
 import { useThemeStore } from '../context/useThemeStore';
@@ -42,79 +42,68 @@ export const HistoryScreen = () => {
     { id: 'Health', label: t('health') },
   ];
 
+  const handleActionRequest = async (id: string, type: 'delete' | 'edit') => {
+    const hasPasscode = userPasscode !== '' && userPasscode !== null && userPasscode !== undefined;
 
-const handleActionRequest = async (id: string, type: 'delete' | 'edit') => {
-  
-  const hasPasscode = userPasscode !== '' && userPasscode !== null && userPasscode !== undefined;
-
-  if (!hasPasscode) {
-    if (type === 'edit') {
-      setIsMenuVisible(false);
-      const itemToEdit = groupedTransactions
-        .flatMap((m: any) => m.days.flatMap((d: any) => d.data))
-        .find((t: any) => t.id === id);
-        
-      navigation.navigate('AddTransaction', { editData: itemToEdit || selectedItem });
-    } else if (type === 'delete') {
-      await deleteTransaction(id);
-    }
-    return; // Modal မပြစေရန် ဒီတင် လုပ်ငန်းစဉ်ကို ရပ်လိုက်မယ်
-  }
-
-  // ၃။ Passcode တကယ် သတ်မှတ်ထားမှသာ စကားဝှက်တောင်းသည့် Modal ကို ဖွင့်ပေးမယ်
-  setPendingAction({ id, type });
-  setIsPasscodeModal(true);
-};
-
-const confirmPasscode = async () => {
-  // ၁။ လိုအပ်တဲ့ state တွေကို store ထဲကနေ ဆွဲထုတ်ပါ
-  const { verifyActionPassword, deleteTransaction } = useExpenseStore.getState();
-  const { isGuest } = useAuthStore.getState();
-
-  try {
-    let isValid = false;
-
-    // ၂။ Guest လား Login User လား အပေါ်မူတည်ပြီး Passcode စစ်ပါ
-    if (isGuest) {
-      isValid = passcode === userPasscode; // Local state နဲ့ စစ်ခြင်း
-    } else {
-      isValid = await verifyActionPassword(passcode); // Cloud (Firestore) နဲ့ စစ်ခြင်း
-    }
-
-    // ၃။ Passcode မှန်တယ်ဆိုရင် Edit သို့မဟုတ် Delete ကို ဆက်လုပ်ပါ
-    if (isValid) {
-      if (pendingAction?.type === 'edit') {
+    if (!hasPasscode) {
+      if (type === 'edit') {
         setIsMenuVisible(false);
-        setIsPasscodeModal(false);
-        // Edit screen ကို data နဲ့အတူ ပို့ပေးခြင်း
-        navigation.navigate('AddTransaction', { editData: selectedItem }); 
-      } else if (pendingAction?.type === 'delete') {
-        await deleteTransaction(pendingAction.id);
-        setIsPasscodeModal(false);
+        const itemToEdit = groupedTransactions
+          .flatMap((m: any) => m.days.flatMap((d: any) => d.data))
+          .find((t: any) => t.id === id);
+          
+        navigation.navigate('AddTransaction', { editData: itemToEdit || selectedItem });
+      } else if (type === 'delete') {
+        await deleteTransaction(id);
       }
-      
-      // အောင်မြင်ရင် state တွေကို ပြန်ရှင်းပါ
-      setPasscode('');
-      setPendingAction(null);
-    } else {
-      // ၄။ Passcode မှားရင် error ပြပါ
-      Alert.alert(t('error'), t('wrongPasscode'));
+      return;
+    }
+
+    setPendingAction({ id, type });
+    setIsPasscodeModal(true);
+  };
+
+  const confirmPasscode = async () => {
+    const { verifyActionPassword, deleteTransaction } = useExpenseStore.getState();
+    const { isGuest } = useAuthStore.getState();
+
+    try {
+      let isValid = false;
+
+      if (isGuest) {
+        isValid = passcode === userPasscode;
+      } else {
+        isValid = await verifyActionPassword(passcode);
+      }
+
+      if (isValid) {
+        if (pendingAction?.type === 'edit') {
+          setIsMenuVisible(false);
+          setIsPasscodeModal(false);
+          navigation.navigate('AddTransaction', { editData: selectedItem }); 
+        } else if (pendingAction?.type === 'delete') {
+          await deleteTransaction(pendingAction.id);
+          setIsPasscodeModal(false);
+        }
+        
+        setPasscode('');
+        setPendingAction(null);
+      } else {
+        Alert.alert(t('error'), t('wrongPasscode'));
+        setPasscode('');
+      }
+    } catch (error) {
+      console.error("Passcode verification error:", error);
+      Alert.alert(t('error'), "Verification failed. Please try again.");
       setPasscode('');
     }
-  } catch (error) {
-    console.error("Passcode verification error:", error);
-    Alert.alert(t('error'), "Verification failed. Please try again.");
-    setPasscode('');
-  }
-};
+  };
 
   // ✅ Scroll ဆွဲတဲ့အခါ လက်ရှိလအလိုက် Summary ကို ပြောင်းလဲတွက်ချက်ပေးမည့် Logic
   const activeMonthSummary = useMemo(() => {
-    // လက်ရှိမြင်နေရတဲ့ လရဲ့ start နဲ့ end ကို တွက်ပါတယ်
     const parsedDate = parse(currentVisibleMonth, 'MMMM yyyy', new Date());
     const start = startOfMonth(parsedDate);
     const end = endOfMonth(parsedDate);
-    // console.log('transactions ', transactions);
     return (transactions || []).reduce((acc, curr) => {
       const tDate = new Date(curr.transactionDate);
       if (isWithinInterval(tDate, { start, end })) {
@@ -169,23 +158,19 @@ const confirmPasscode = async () => {
     }));
   }, [filteredTransactions, displayLimit]);
 
-  // ✅ Viewable Items က ပြောင်းလဲသွားရင် (Scroll ဆွဲရင်) လကို update လုပ်ပေးမည့် function
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
-      // Screen ပေါ်မှာ မြင်နေရတဲ့ ထိပ်ဆုံး item ရဲ့ month title ကို ယူပါတယ်
       const firstVisibleMonth = viewableItems[0].item.monthTitle;
-      // ✅ လက်ရှိလနဲ့ မတူမှသာ State ကို update လုပ်ပါ (ဒါဆိုရင် Screen မတုန်တော့ပါ)
       if (firstVisibleMonth && firstVisibleMonth !== currentVisibleMonth) {
-      setCurrentVisibleMonth(firstVisibleMonth);
-    }
+        setCurrentVisibleMonth(firstVisibleMonth);
+      }
     }
   }).current;
-
 
   return (
     <View style={[styles.container, { backgroundColor: theme === 'light' ? '#F4F7FE' : themeColors.background }]}>
       
-      {/* Passcode Modal (No Change) */}
+      {/* Passcode Modal */}
       <Modal visible={isPasscodeModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: themeColors.surface }]}>
@@ -212,7 +197,7 @@ const confirmPasscode = async () => {
         </View>
       </Modal>
 
-      {/* Options Menu Modal (No Change) */}
+      {/* Options Menu Modal */}
       <Modal visible={isMenuVisible} transparent animationType="slide">
         <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setIsMenuVisible(false)}>
           <View style={[styles.sheetContent, { backgroundColor: themeColors.surface }]}>
@@ -228,30 +213,49 @@ const confirmPasscode = async () => {
         </TouchableOpacity>
       </Modal>
 
-      {/* Header - Card summary ပြောင်းလဲသွားမည့်အပိုင်း */}
+      {/* ✅ ၄ထောင့်ပုံစံ ပြောင်းလဲထားသော Header Box ဖြစ်ပါတယ် */}
+      {/* ✅ Analytics Screen အတိုင်း တစ်သမတ်တည်းဖြစ်အောင် ပြင်ဆင်ထားသော Header Section */}
       <LinearGradient colors={themeColors.primaryGradient || ['#4A6CF7', '#6A85F1']} style={styles.header}>
-        {/* လအမည်ကိုပါ header မှာ ပြချင်ရင် activeMonthSummary အပေါ်မှာ currentVisibleMonth ကို သုံးပြလို့ရပါတယ် */}
-        <Text style={styles.navTitle}>{currentVisibleMonth}</Text>
-        <View style={styles.monthlySummaryRow}>
-          <View style={styles.summaryBox}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-              <TrendingUp size={14} color="#4ADE80" />
-              <Text style={styles.summaryLabel}>{t('income')}</Text>
-            </View>
-            <Text style={styles.summaryValue}>+{activeMonthSummary.income.toLocaleString()}</Text>
-          </View>
-          <View style={{ width: 1, height: '100%', backgroundColor: 'rgba(255,255,255,0.1)' }} />
-          <View style={styles.summaryBox}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-              <TrendingDown size={14} color="#FB7185" />
-              <Text style={styles.summaryLabel}>{t('expense')}</Text>
-            </View>
-            <Text style={styles.summaryValue}>-{activeMonthSummary.expense.toLocaleString()}</Text>
-          </View>
+        {/* အပေါ်ဆုံးတွင် ပြသပေးမည့် History Name နှင့် Icon (Analytics အတိုင်း ဘယ်ဘက်ကပ်ထားသည်) */}
+        <View style={styles.screenHeaderTitleRow}>
+          <CalendarIcon size={24} color="#fff" />
+          <Text style={styles.screenHeaderTitleText}>History</Text>
         </View>
       </LinearGradient>
 
       <View style={styles.content}>
+        
+        {/* ✅ Income & Expense Summary ကို အောက်မှာ Card အနေနဲ့ ပြောင်းပြထားတဲ့ အပိုင်းပါ */}
+        <View style={[styles.combinedSummaryCard, { backgroundColor: themeColors.surface }]}>
+          {/* ပြသနေသည့် လအမည် */}
+          <Text style={[styles.cardMonthTitle, { color: themeColors.text.primary }]}>
+            {currentVisibleMonth}
+          </Text>
+          
+          <View style={styles.cardDividerLine} />
+
+          {/* Income & Expense Row */}
+          <View style={styles.cardSummaryRow}>
+            <View style={styles.summaryBox}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                <TrendingUp size={15} color="#22C55E" />
+                <Text style={[styles.summaryLabel, { color: themeColors.text.secondary }]}>{t('income')}</Text>
+              </View>
+              <Text style={[styles.summaryValue, { color: '#22C55E' }]}>+{activeMonthSummary.income.toLocaleString()} Ks</Text>
+            </View>
+
+            <View style={[styles.verticalDivider, { backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]} />
+
+            <View style={styles.summaryBox}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                <TrendingDown size={15} color="#FF6B6B" />
+                <Text style={[styles.summaryLabel, { color: themeColors.text.secondary }]}>{t('expense')}</Text>
+              </View>
+              <Text style={[styles.summaryValue, { color: '#FF6B6B' }]}>-{activeMonthSummary.expense.toLocaleString()} Ks</Text>
+            </View>
+          </View>
+        </View>
+
         <View style={[styles.searchContainer, { backgroundColor: themeColors.surface }]}>
           <Search size={18} color="#999" />
           <TextInput
@@ -284,13 +288,15 @@ const confirmPasscode = async () => {
           </ScrollView>
         </View>
 
-        {/* Main List - onViewableItemsChanged ထည့်သွင်းထားပါတယ် */}
+        {/* ✅ showsVerticalScrollIndicator={false} ထည့်ပြီး ညာဘက်ဘေးက sidebar ကို ဖြောက်ထားပါတယ် */}
         <FlatList
           data={groupedTransactions}
           keyExtractor={(item) => item.monthTitle}
+          showsVerticalScrollIndicator={false} 
           onEndReached={() => setDisplayLimit(prev => prev + 10)}
-          onViewableItemsChanged={onViewableItemsChanged} // ✅ Scroll monitoring
-          viewabilityConfig={{ itemVisiblePercentThreshold: 50 }} // ✅ ၅၀ ရာခိုင်နှုန်း မြင်ရရင် လကို update လုပ်မယ်
+          onViewableItemsChanged={onViewableItemsChanged} 
+          viewabilityConfig={{ itemVisiblePercentThreshold: 50 }} 
+          contentContainerStyle={{ paddingBottom: 40 }}
           renderItem={({ item: monthGroup, index }) => (
             <View>
               <View style={styles.monthDivider}>
@@ -335,7 +341,7 @@ const confirmPasscode = async () => {
               ))}
 
               {index < groupedTransactions.length - 1 && (
-                <View style={[styles.monthSeparator, { backgroundColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.481)' : 'rgba(0, 0, 0, 0.33)' }]} />
+                <View style={[styles.monthSeparator, { backgroundColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.05)' }]} />
               )}
             </View>
           )}
@@ -352,48 +358,112 @@ const confirmPasscode = async () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingBottom: 70 },
-  header: { paddingTop: 45, paddingBottom: 20, paddingHorizontal: 20, borderBottomLeftRadius: 25, borderBottomRightRadius: 25 },
-  navTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff', textAlign: 'center', marginBottom: 15 },
-  monthlySummaryRow: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 15, padding: 12 },
-  summaryBox: { flex: 1, alignItems: 'center' },
-  summaryLabel: { color: '#E0E0E0', fontSize: 11, marginBottom: 2 },
-  summaryValue: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
-  content: { flex: 1, paddingHorizontal: 16, marginTop: 15 },
+  container: { flex: 1, paddingBottom: 100 },
+  // Header အား Analytics အတိုင်း Padding Vertical များနှင့် Layout ညှိပေးထားမှု
+  header: { 
+    paddingTop: 45, 
+    paddingBottom: 20, 
+    paddingHorizontal: 20,
+  },
+  // Analytics ထဲကအတိုင်း အိုင်ကွန်နှင့် စာသားကို ဘယ်ဘက်သို့ ကပ်ပြီး စီတန်းပေးသည့် Style
+  screenHeaderTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start', // အလယ်ကနေ ဘယ်ဘက်ကပ်သို့ ပြောင်းလဲထားသည်
+    gap: 12,                      // Icon နှင့် Text ကြား အကွာအဝေး
+    width: '100%',
+  },
+  screenHeaderTitleText: {
+    fontSize: 24,                 // Analytics အတိုင်း Font Size ကို ၂၄ သို့ တိုးမြှင့်ထားသည်
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  // လအမည်နှင့် စာရင်းများကို တစ်ပါတည်း စုစည်းပေးမည့် ၄ထောင့် Card စတိုင်လ်
+  combinedSummaryCard: {
+    borderRadius: 16,
+    marginBottom: 15,
+    padding: 16,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  cardMonthTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  cardDividerLine: {
+    height: 1,
+    backgroundColor: 'rgba(128, 128, 128, 0.1)',
+    marginBottom: 12,
+    marginHorizontal: 10,
+  },
+  cardSummaryRow: {
+   
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  summaryBox: { 
+    flex: 1, 
+    alignItems: 'center',
+  },
+  verticalDivider: { 
+    width: 1, 
+    height: 30,
+  },
+  summaryLabel: { 
+    fontSize: 11, 
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  summaryValue: { 
+    fontSize: 15, 
+    fontWeight: 'bold',
+  },
+  // Content အား ပုံစံမပျက်စေရန် အနည်းငယ် ပြန်ညှိခြင်း
+  content: { 
+    flex: 1, 
+    paddingHorizontal: 16, 
+    marginTop: 15,
+  },
+  navTitle: { fontSize: 20, fontWeight: 'bold', color: '#fff', textAlign: 'center' },
+  
+  // အောက်ဘက်တွင် သီးသန့်ပြသရန် Card Style အသစ်
+  summaryCard: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    borderRadius: 20, 
+    padding: 16, 
+    marginBottom: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 }
+  },
+  // summaryBox: { flex: 1, alignItems: 'center' },
+  // verticalDivider: { width: 1, height: '100%' },
+  // summaryLabel: { fontSize: 12, marginBottom: 4, fontWeight: '500' },
+  // summaryValue: { fontSize: 16, fontWeight: 'bold' },
+  
+  // content: { flex: 1, paddingHorizontal: 16, marginTop: -10 },
   searchContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, borderRadius: 12, height: 45, elevation: 3, marginBottom: 15 },
   searchInput: { flex: 1, marginLeft: 8, fontSize: 14 },
   filterSection: { marginBottom: 15 },
-  chipWrapper: {
-  marginRight: 8,
-  borderRadius: 12,
-  overflow: 'hidden', // Gradient က ကွေးနေတဲ့ထောင့်တွေအတိုင်း ဖြစ်နေအောင်
-  elevation: 2,
-},
-chipGradient: {
-  paddingHorizontal: 18,
-  paddingVertical: 10,
-  alignItems: 'center',
-  justifyContent: 'center',
-},
-chipNormal: {
-  paddingHorizontal: 18,
-  paddingVertical: 10,
-  alignItems: 'center',
-  justifyContent: 'center',
-},
-chipText: {
-  fontSize: 12,
-  fontWeight: '700',
-},
-  chip: { paddingHorizontal: 15, paddingVertical: 8, borderRadius: 12, marginRight: 8, elevation: 1 },
-  // ✅ Month Divider Styles
+  chipWrapper: { marginRight: 8, borderRadius: 12, overflow: 'hidden', elevation: 2 },
+  chipGradient: { paddingHorizontal: 18, paddingVertical: 10, alignItems: 'center', justifyContent: 'center' },
+  chipNormal: { paddingHorizontal: 18, paddingVertical: 10, alignItems: 'center', justifyContent: 'center' },
+  chipText: { fontSize: 12, fontWeight: '700' },
   monthDivider: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 5, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)', marginBottom: 15, marginTop: 10 },
   monthText: { fontSize: 16, fontWeight: '800', color: '#4A6CF7', textTransform: 'uppercase' },
   monthTotalBox: { flexDirection: 'row', gap: 12 },
   monthInText: { fontSize: 12, color: '#22C55E', fontWeight: '700' },
   monthOutText: { fontSize: 12, color: '#FF6B6B', fontWeight: '700' },
-  monthSeparator: { height: 2, marginHorizontal: 30, },
-  // Day Block Styles
+  monthSeparator: { height: 1, marginHorizontal: 20, marginVertical: 10 },
   dateBlock: { marginBottom: 15 },
   dateHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, paddingHorizontal: 4 },
   dateLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -401,7 +471,7 @@ chipText: {
   dateRight: { flexDirection: 'row', gap: 10 },
   dayIn: { fontSize: 11, color: '#22C55E', fontWeight: 'bold' },
   dayOut: { fontSize: 11, color: '#FF6B6B', fontWeight: 'bold' },
-  itemCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, borderRadius: 16, marginBottom:5,  elevation: 1 },
+  itemCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, borderRadius: 16, marginBottom: 5, elevation: 1 },
   itemMain: { flex: 1 },
   itemLabel: { fontSize: 14, fontWeight: '600', marginBottom: 3 },
   itemSub: { flexDirection: 'row', alignItems: 'center', gap: 4 },
