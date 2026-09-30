@@ -1,4 +1,3 @@
-// src/i18n/i18n.ts
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
@@ -23,7 +22,14 @@ const resources = {
       createRecord: "Create Record",
       amount: "Amount",
       category: "Select Category",
-      
+      connectingGoogle: "Connecting Google...",
+      editNote: "Edit Note",
+      updateDesc: "Change the details you want to edit",
+      updateFooter: "Press Update once you have finished editing",
+      loginFailed: "Login Failed",
+      loginErrorMsg: "Unable to login",
+      updateSuccessDesc: "Update Successful",
+            
       // Categories Translation (EN)
       all: "All",
       food: "Food",
@@ -134,7 +140,7 @@ const resources = {
       qty: "Qty",
       saveRecord: "Save Item",
 
-      // 🆕 AddToBuyScreen အတွက် အသစ်ဖြည့်ထားသော Key များ (EN)
+      // 🆕 AddToBuyScreen Key 
       addToListTitle: "Add To Buy List",
       editListTitle: "Edit Buy Item",
       labelItemName: "Item Name",
@@ -148,7 +154,8 @@ const resources = {
       saveAllBtnText: "Save All",
       editBtnText: "Save Changes",
       alertFillAll: "Please fill all details",
-      alertNoItems: "Please add items to list",
+      alertNoItems: "Please add items name",
+      alertNotiPri: "Please add items price",
       alertSaveError: "Error saving transaction"
     }
   },
@@ -172,7 +179,13 @@ const resources = {
       createRecord: "စာရင်းအသစ်ထည့်ရန်",
       amount: "ပမာဏ",
       category: "အမျိုးအစားရွေးပါ",
-      
+      connectingGoogle: "Google နှင့် ချိတ်ဆက်နေသည်...",
+      editNote: "စာရင်းပြင်ဆင်ရန်",
+      updateDesc: "ပြင်ဆင်လိုသည့် အချက်အလက်များကို ပြောင်းလဲပါ",
+      updateFooter: "ပြင်ဆင်မှုများပြီးဆုံးပါက Update ကိုနှိပ်ပါ",
+      loginFailed: "အကောင့်ဝင်ခြင်း မအောင်မြင်ပါ",
+      loginErrorMsg: "အကောင့်ဝင်လို့ မရပါ",
+      updateSuccessDesc: "ပြင်ဆင်မှု အောင်မြင်ပါသည်",
       // Categories Translation (MM)
       all: "အထွေထွေ",
       food: "စားသောက်စရိတ်",
@@ -239,7 +252,7 @@ const resources = {
       currency: "ငွေကြေးအမျိုးအစား",
       about: "ငွေနုတ် အကြောင်း",
       version: "ဗားရှင်း",
-      developer: "ရေးသားသူ : ကျော်ဇေယျ",
+      developer: "ဖန်တီးသူ : ကျော်ဇေယျ",
       dangerZone: "အရေးကြီးကဏ္ဍ",
       resetData: "ဒေတာအားလုံးဖျက်ပစ်ရန်",
       logout: "အကောင့်မှထွက်ရန်",
@@ -283,7 +296,7 @@ const resources = {
       qty: "အရေအတွက်",
       saveRecord: "သိမ်းဆည်းမည်",
 
-      // 🆕 AddToBuyScreen အတွက် အသစ်ဖြည့်ထားသော Key များ (MM)
+      // 🆕 AddToBuyScreen Key (MM)
       addToListTitle: "ဝယ်ယူရန်စာရင်းထည့်ရန်",
       editListTitle: "စာရင်းပြင်ဆင်ရန်",
       labelItemName: "ပစ္စည်းအမည်",
@@ -297,7 +310,8 @@ const resources = {
       saveAllBtnText: "အားလုံးသိမ်းဆည်းမည်",
       editBtnText: "ပြင်ဆင်ချက်များကိုသိမ်းမည်",
       alertFillAll: "အချက်အလက်အပြည့်အစုံထည့်ပါ",
-      alertNoItems: "ပစ္စည်းစာရင်း ထည့်သွင်းပေးပါ",
+      alertNoItems: "ပစ္စည်း နာမည်ထည့်သွင်းပေးပါ",
+      alertNotiPri: "ပစ္စည်း တန်ဖိုးထည့်သွင်းပေးပါ",
       alertSaveError: "သိမ်းဆည်းရာတွင် အမှားအယွင်းရှိပါသည်။"
     }
   }
@@ -305,7 +319,7 @@ const resources = {
 
 i18n.use(initReactI18next).init({
   resources,
-  lng: 'mm', 
+  lng: 'en', 
   fallbackLng: 'en',
   compatibilityJSON: 'v3',
   interpolation: { escapeValue: false }

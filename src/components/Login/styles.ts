@@ -1,0 +1,157 @@
+import { StyleSheet, Dimensions } from 'react-native';
+import { fontSize } from '../../theme/fontSize';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+export const styles = StyleSheet.create({
+  container: { flex: 1 },
+  topSection: {
+    height: '48%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderBottomLeftRadius: 50,
+    borderBottomRightRadius: 50,
+  },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 15,
+    width: '80%',
+    marginTop: 20,
+  },
+  titleContainer: { flex: 1 },
+  logoTextRow: { flexDirection: 'row', alignItems: 'center' },
+  appTitle: { fontSize: fontSize.huge, fontWeight: 'bold', color: '#fff' },
+  appTitleNote: { fontSize: fontSize.huge, fontWeight: 'bold', marginLeft: 5 },
+  appDesc: {
+    fontSize: fontSize.sm,
+    marginTop: 5,
+    color: 'rgba(255,255,255,0.85)',
+    fontWeight: '500',
+  },
+
+  cardContainer: { alignItems: 'center', marginTop: -80 },
+  card: {
+    width: SCREEN_WIDTH * 0.88,
+    padding: 28,
+    borderRadius: 30,
+    shadowOffset: { width: 0, height: 12 },
+    shadowRadius: 16,
+  },
+  cardTitle: {
+    textAlign: 'center',
+    marginBottom: 25,
+    fontSize: fontSize.md,
+    fontWeight: '700',
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    height: 58,
+    borderRadius: 18,
+    width: '100%',
+  },
+  btnText: { fontWeight: '700', fontSize: fontSize.md },
+  googleBtn: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e0e0e0' },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 22 },
+  line: { flex: 1, height: 1 },
+  orText: { marginHorizontal: 15, fontSize: fontSize.xs, fontWeight: '600' },
+
+  langBtn: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+  },
+  themeBtn: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  langText: { color: '#fff', fontSize: fontSize.xs, fontWeight: '600' },
+
+  logoIcon: {
+    width: 70,
+    height: 70,
+    backgroundColor: '#fff',
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 10,
+  },
+
+  footerContainer: {
+    position: 'absolute',
+    bottom: 25,
+    width: '100%',
+    paddingHorizontal: 20,
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: fontSize.xs,
+    textAlign: 'center',
+    lineHeight: 20,
+    fontWeight: '500',
+    opacity: 0.85,
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalAlertBox: {
+    width: SCREEN_WIDTH * 0.82,
+    padding: 24,
+    borderRadius: 24,
+    alignItems: 'center',
+    elevation: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+  },
+  alertIconContainer: {
+    marginBottom: 16,
+  },
+  modalAlertTitle: {
+    fontSize: fontSize.md + 2,
+    fontWeight: '700',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalAlertMessage: {
+    fontSize: fontSize.sm,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+    paddingHorizontal: 10,
+  },
+  modalAlertBtn: {
+    width: '100%',
+    height: 48,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalAlertBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: fontSize.md,
+  },
+});

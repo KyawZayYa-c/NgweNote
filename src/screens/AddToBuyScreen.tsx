@@ -1,30 +1,45 @@
-//src/screens/AddToBuyScreen.tsx
 import React, { useState, useEffect } from 'react';
-import { useExpenseStore } from '../context/useExpenseStore'; 
-import { 
-  View, Text, StyleSheet, TextInput, TouchableOpacity, 
-  ScrollView, Platform, KeyboardAvoidingView, StatusBar, Alert 
+import { useExpenseStore } from '../context/useExpenseStore';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Platform,
+  KeyboardAvoidingView,
+  StatusBar,
+  StyleSheet,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeStore } from '../context/useThemeStore';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, Save, ShoppingBag, DollarSign, Plus, X } from 'lucide-react-native';
+import {
+  ChevronLeft,
+  Save,
+  ShoppingBag,
+  DollarSign,
+  Plus,
+} from 'lucide-react-native';
+import { AlertModal, FormInput, BatchPreview, styles } from '../components/AddToBuy';
 
 export const AddToBuyScreen = ({ navigation, route }: any) => {
   const { t } = useTranslation();
   const { theme, getColors } = useThemeStore();
   const themeColors = getColors();
-  
-  const { addToBuyItem, updateToBuyItem } = useExpenseStore(); 
+
+  const { addToBuyItem, updateToBuyItem } = useExpenseStore();
   const editData = route.params?.editData;
   const isEditMode = !!editData;
 
-  // --- States ---
   const [itemName, setItemName] = useState('');
   const [unitPrice, setUnitPrice] = useState('');
   const [count, setCount] = useState('1');
   const [totalPrice, setTotalPrice] = useState(0);
   const [itemList, setItemList] = useState<any[]>([]);
+
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
 
   const isBatching = itemList.length > 0;
 
@@ -32,7 +47,7 @@ export const AddToBuyScreen = ({ navigation, route }: any) => {
     if (isEditMode) {
       setItemName(editData.itemName);
       setUnitPrice(editData.unitPrice.toString());
-      count && setCount(editData.count.toString());
+      setCount(editData.count.toString());
     }
   }, [isEditMode, editData]);
 
@@ -41,6 +56,12 @@ export const AddToBuyScreen = ({ navigation, route }: any) => {
     const qty = parseInt(count) || 0;
     setTotalPrice(price * qty);
   }, [unitPrice, count]);
+
+  const showAlert = (title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
 
   const resetForm = () => {
     setItemName('');
@@ -51,7 +72,7 @@ export const AddToBuyScreen = ({ navigation, route }: any) => {
 
   const addToList = () => {
     if (!itemName || !unitPrice) {
-      Alert.alert(t('warning'), t('alertFillAll'));
+      showAlert(t('warning'), t('alertFillAll'));
       return;
     }
 
@@ -68,17 +89,25 @@ export const AddToBuyScreen = ({ navigation, route }: any) => {
   };
 
   const removeFromList = (id: string) => {
-    setItemList(itemList.filter(item => item.id !== id));
+    setItemList(itemList.filter((item) => item.id !== id));
   };
 
   const handleFinalSave = async () => {
     try {
       if (isEditMode) {
-        if (!itemName || !unitPrice) {
-          Alert.alert(t('warning'), t('alertFillAll'));
+        if (!itemName && !unitPrice) {
+          showAlert(t('warning'), t('alertNoItems'));
           return;
         }
-        
+        if (!itemName) {
+          showAlert(t('warning'), t('alertNoItems'));
+          return;
+        }
+        if (!unitPrice) {
+          showAlert(t('warning'), t('alertNotiPri'));
+          return;
+        }
+
         await updateToBuyItem(editData.id, {
           itemName: itemName,
           unitPrice: parseFloat(unitPrice),
@@ -86,16 +115,23 @@ export const AddToBuyScreen = ({ navigation, route }: any) => {
         });
       } else {
         const itemsToSave = [...itemList];
+
         if (itemName && unitPrice) {
           itemsToSave.push({
             itemName,
             unitPrice: parseFloat(unitPrice),
             count: parseInt(count),
           });
+        } else if (itemName && !unitPrice) {
+          showAlert(t('warning'), t('alertNotiPri'));
+          return;
+        } else if (!itemName && unitPrice) {
+          showAlert(t('warning'), t('alertNoItems'));
+          return;
         }
 
         if (itemsToSave.length === 0) {
-          Alert.alert(t('warning'), t('alertNoItems'));
+          showAlert(t('warning'), t('alertNoItems'));
           return;
         }
 
@@ -103,27 +139,37 @@ export const AddToBuyScreen = ({ navigation, route }: any) => {
           await addToBuyItem({
             itemName: item.itemName,
             unitPrice: item.unitPrice,
-            count: item.count
+            count: item.count,
           });
         }
       }
-      
+
       navigation.goBack();
     } catch (error) {
-      Alert.alert(t('error'), t('alertSaveError'));
+      showAlert(t('error'), t('alertSaveError'));
     }
   };
 
+  const finalCount = itemList.length + (itemName ? 1 : 0);
+
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={[styles.container, { backgroundColor: themeColors.background }]}
     >
-      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
-      
+      <StatusBar
+        barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
+        backgroundColor="transparent"
+        translucent
+      />
+
       <LinearGradient colors={themeColors.primaryGradient} style={styles.header}>
         <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backBtn}
+            activeOpacity={0.7}
+          >
             <ChevronLeft color="#fff" size={28} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
@@ -133,149 +179,111 @@ export const AddToBuyScreen = ({ navigation, route }: any) => {
         </View>
       </LinearGradient>
 
-      <ScrollView contentContainerStyle={styles.formContainer} keyboardShouldPersistTaps="handled">
-        
-        <View style={styles.inputWrapper}>
-          <Text style={[styles.label, { color: themeColors.text.secondary }]}>{t('labelItemName')}</Text>
-          <View style={[styles.inputBox, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
-            <ShoppingBag size={18} color={themeColors.primary} style={{ marginRight: 10 }} />
-            <TextInput 
-              style={[styles.mainInput, { color: themeColors.text.primary }]}
-              value={itemName}
-              placeholder={t('placeholderItemName')}
-              placeholderTextColor={themeColors.text.secondary} 
-              onChangeText={setItemName}
-            />
-          </View>
-        </View>
+      <ScrollView
+        contentContainerStyle={styles.formContainer}
+        keyboardShouldPersistTaps="handled"
+      >
+        <FormInput
+          label={t('labelItemName')}
+          value={itemName}
+          onChangeText={setItemName}
+          placeholder={t('placeholderItemName')}
+          icon={<ShoppingBag size={18} color={themeColors.primary} style={{ marginRight: 10 }} />}
+          themeColors={themeColors}
+          containerStyle={styles.inputWrapper}
+        />
 
         <View style={styles.row}>
-          <View style={{ flex: 1.5 }}>
-            <Text style={[styles.label, { color: themeColors.text.secondary }]}>{t('labelPrice')}</Text>
-            <View style={[styles.inputBox, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
-              <DollarSign size={18} color={themeColors.primary} />
-              <TextInput 
-                style={[styles.mainInput, { color: themeColors.text.primary, marginLeft: 5 }]}
-                value={unitPrice}
-                placeholder="0.00"
-                placeholderTextColor={themeColors.text.secondary} 
-                keyboardType="decimal-pad"
-                onChangeText={(text) => setUnitPrice(text.replace(/[^0-9.]/g, ''))}
-              />
-            </View>
-          </View>
+          <FormInput
+            label={t('labelPrice')}
+            value={unitPrice}
+            onChangeText={setUnitPrice}
+            placeholder="0.00"
+            icon={<DollarSign size={18} color={themeColors.primary} />}
+            keyboardType="decimal-pad"
+            themeColors={themeColors}
+            containerStyle={{ flex: 1.5 }}
+            inputStyle={{ marginLeft: 5 }}
+            sanitize={(text) => text.replace(/[^0-9.]/g, '')}
+          />
 
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.label, { color: themeColors.text.secondary }]}>{t('labelCount')}</Text>
-            <View style={[styles.inputBox, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
-              <TextInput 
-                style={[styles.mainInput, { color: themeColors.text.primary, textAlign: 'center' }]}
-                value={count}
-                keyboardType="numeric"
-                placeholderTextColor={themeColors.text.secondary}
-                onChangeText={(text) => setCount(text.replace(/[^0-9]/g, ''))}
-              />
-            </View>
-          </View>
+          <FormInput
+            label={t('labelCount')}
+            value={count}
+            onChangeText={setCount}
+            keyboardType="numeric"
+            themeColors={themeColors}
+            containerStyle={{ flex: 1 }}
+            textAlign="center"
+            sanitize={(text) => text.replace(/[^0-9]/g, '')}
+          />
         </View>
 
         <View style={styles.totalDisplay}>
-          <Text style={[styles.totalLabel, { color: themeColors.text.secondary }]}>{t('labelTotalAmount')}</Text>
+          <Text style={[styles.totalLabel, { color: themeColors.text.secondary }]}>
+            {t('labelTotalAmount')}
+          </Text>
           <Text style={[styles.totalAmount, { color: themeColors.primary }]}>
             {totalPrice.toLocaleString()} Ks
           </Text>
         </View>
 
         {!isEditMode && (
-          <TouchableOpacity 
-            onPress={addToList} 
+          <TouchableOpacity
+            onPress={addToList}
             style={[styles.addToListBtn, { borderColor: themeColors.primary }]}
             activeOpacity={0.7}
           >
             <Plus size={20} color={themeColors.primary} />
-            <Text style={[styles.addToListText, { color: themeColors.primary }]}>{t('addMoreItemBtn')}</Text>
+            <Text style={[styles.addToListText, { color: themeColors.primary }]}>
+              {t('addMoreItemBtn')}
+            </Text>
           </TouchableOpacity>
         )}
 
         {!isEditMode && isBatching && (
-          <View style={styles.batchContainer}>
-            <Text style={[styles.batchTitle, { color: themeColors.text.secondary }]}>{t('previewTitle')} ({itemList.length})</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.batchScroll}>
-              {itemList.map((item) => (
-                <TouchableOpacity 
-                  key={item.id} 
-                  style={[styles.batchCard, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]} 
-                  onPress={() => removeFromList(item.id)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.batchCardHeader}>
-                    <Text style={[styles.batchAmount, { color: themeColors.primary }]}>{item.totalPrice.toLocaleString()}</Text>
-                    <X size={14} color={themeColors.text.secondary} />
-                  </View>
-                  <Text style={[styles.batchNote, { color: themeColors.text.primary }]} numberOfLines={1}>{item.itemName}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
+          <BatchPreview
+            items={itemList}
+            onRemove={removeFromList}
+            themeColors={themeColors}
+            title={t('previewTitle')}
+          />
         )}
 
-        <TouchableOpacity 
-          onPress={handleFinalSave} 
+        <TouchableOpacity
+          onPress={handleFinalSave}
           activeOpacity={0.8}
           style={[
-            styles.saveBtn, 
-            theme === 'dark' && { borderWidth: 1, borderColor: 'rgba(0, 209, 255, 0.3)' }
-          ]} 
+            styles.saveBtn,
+            theme === 'dark' && { borderWidth: 1, borderColor: 'rgba(0, 209, 255, 0.3)' },
+          ]}
         >
-          <LinearGradient 
-            colors={themeColors.primaryBtn || ['#6A5AE0', '#010102']} 
+          <LinearGradient
+            colors={themeColors.primaryBtn || ['#6A5AE0', '#010102']}
             style={[StyleSheet.absoluteFillObject, { borderRadius: 20 }]}
           />
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, zIndex: 1 }}>
             <Save color="#fff" size={20} />
             <Text style={styles.saveText}>
-              {isEditMode 
-                ? t('editBtnText') 
-                : (isBatching ? `${t('saveAllBtnText')} (${itemList.length + (itemName ? 1 : 0)})` : t('saveBtnText'))
-              }
+              {isEditMode
+                ? t('editBtnText')
+                : isBatching
+                ? `${t('saveAllBtnText')} (${finalCount})`
+                : t('saveBtnText')}
             </Text>
           </View>
         </TouchableOpacity>
-
       </ScrollView>
+
+      <AlertModal
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
+        themeColors={themeColors}
+        okText={t('ok') || 'OK'}
+      />
     </KeyboardAvoidingView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { 
-    height: Platform.OS === 'ios' ? 110 : 90, 
-    justifyContent: 'flex-end', 
-    paddingBottom: 15,
-  },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20 },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  backBtn: { padding: 4 },
-  formContainer: { paddingHorizontal: 25, paddingTop: 25, paddingBottom: 60 },
-  inputWrapper: { marginBottom: 18 },
-  label: { fontSize: 11, marginBottom: 6, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
-  inputBox: { flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 20, borderWidth: 1.5 },
-  mainInput: { flex: 1, fontSize: 16, fontWeight: '600', paddingVertical: 0 },
-  row: { flexDirection: 'row', gap: 12, marginBottom: 18 },
-  totalDisplay: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, paddingHorizontal: 5 },
-  totalLabel: { fontSize: 14, fontWeight: '600' },
-  totalAmount: { fontSize: 20, fontWeight: '800' },
-  addToListBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 15, borderRadius: 20, borderStyle: 'dashed', borderWidth: 1.5, marginBottom: 25, gap: 8 },
-  addToListText: { fontWeight: '700', fontSize: 14 },
-  batchContainer: { marginBottom: 25 },
-  batchTitle: { fontSize: 12, fontWeight: '700', marginBottom: 10, textTransform: 'uppercase' },
-  batchScroll: { flexDirection: 'row' },
-  batchCard: { width: 130, padding: 12, borderRadius: 18, marginRight: 12, borderWidth: 1.5 },
-  batchCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  batchAmount: { fontSize: 14, fontWeight: '800' },
-  batchNote: { fontSize: 12, fontWeight: '600' },
-  saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 60, borderRadius: 20, gap: 12, elevation: 4, overflow: 'hidden' },
-  saveText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-});

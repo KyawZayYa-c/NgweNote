@@ -21,18 +21,27 @@
     },
     "android": {
       "package": "com.ngwenote.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "newArchEnabled": false
+      "newArchEnabled": false,
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-   "plugins": [
-  "expo-build-properties",
-  "@react-native-google-signin/google-signin"
-]
+    "plugins": [
+      "expo-build-properties",
+      "@react-native-google-signin/google-signin"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "5f928b15-668b-41b0-a541-b1f153cbcb19"
+      }
+    }
   }
 }

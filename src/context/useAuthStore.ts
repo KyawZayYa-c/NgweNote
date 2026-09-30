@@ -30,7 +30,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isGuest: false,
   user: null,
   isLoading: true,
-  language: 'mm',
+  language: 'en',
 
 loginAsGuest: async () => {
   try {
@@ -47,10 +47,9 @@ loginAsGuest: async () => {
   loginWithGoogle: async (user: any) => {
   try {
     const userDoc = await db.collection('users').doc(user.uid).get();
-    const isNewUser = !userDoc.exists; // Document မရှိရင် user အသစ်
+    const isNewUser = !userDoc.exists; 
     const userDataFromFirestore = userDoc.data();
 
-    // --- ဒေတာများ Cloud ပေါ်သို့ ရွှေ့ခြင်း (Data Migration Logic) ---
     const { useExpenseStore } = require('./useExpenseStore');
     const expenseStore = useExpenseStore.getState();
     const localTransactions = [...expenseStore.transactions];
@@ -69,16 +68,15 @@ loginAsGuest: async () => {
       await AsyncStorage.setItem('@transactions_storage_key', JSON.stringify(finalLocalData));
     }
 
-    // --- ၂။ Shopping Items (ဝယ်ယူရန်စာရင်းများ) ရွှေ့ခြင်း ✨ ---
+    // --- ၂။ Shopping Items \ ---
     const localShoppingItems = [...expenseStore.toBuyItems];
     if (localShoppingItems.length > 0) {
       for (const item of localShoppingItems) {
         await db.collection('shopping_items').doc(item.id).set({
           ...item,
-          userId: user.uid // Guest ကနေ User UID သို့ ပြောင်းပေးမယ်
+          userId: user.uid 
         });
       }
-      // Cloud ပေါ်တင်ပြီးရင် Local AsyncStorage ကော Store ထဲကပါ ရှင်းပစ်မယ်
       await AsyncStorage.removeItem('@to_buy_items'); 
       useExpenseStore.setState({ toBuyItems: [] }); 
     }
@@ -86,7 +84,7 @@ loginAsGuest: async () => {
     await expenseStore.fetchTransactions();
     await expenseStore.fetchToBuyItems();
 
-    // --- ✨ Welcome Notification ပြမည့် အပိုင်း ---
+
     if (isNewUser) {
       await Notifications.scheduleNotificationAsync({
         content: {
@@ -95,7 +93,7 @@ loginAsGuest: async () => {
         },
         trigger: null,
       });
-      // User အသစ်ဆိုရင် Firestore မှာ စာရင်းသွင်းမယ်
+
       await db.collection('users').doc(user.uid).set({
         uid: user.uid,
         email: user.email,
@@ -167,7 +165,7 @@ logout: async () => {
       const guestFlag = await AsyncStorage.getItem('@auth_status');
       const savedLang = await AsyncStorage.getItem('@app_lang') as 'mm' | 'en' | null;
       
-      const currentLang = savedLang || 'mm';
+      const currentLang = savedLang || 'en';
       i18n.changeLanguage(currentLang);
 
       set({ 

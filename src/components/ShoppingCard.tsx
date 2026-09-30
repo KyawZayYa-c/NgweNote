@@ -15,7 +15,7 @@ export const ShoppingCard = ({ item, onToggle, onDelete, onEdit, onLongPress }: 
   const { getColors } = useThemeStore();
   const themeColors = getColors();
 
-  // Data Keys သတ်မှတ်ခြင်း
+  // Data Keys 
   const itemName = item.itemName || "အမည်မရှိ";
   const count = item.count || 0;
   const unitPrice = item.unitPrice || 0;
@@ -37,7 +37,6 @@ export const ShoppingCard = ({ item, onToggle, onDelete, onEdit, onLongPress }: 
         }
       ]}
     >
-      {/* (၁) အမှန်ခြစ်ဝိုင်းအပိုင်း */}
       <TouchableOpacity onPress={onToggle} style={styles.checkArea}>
         {item.isBought ? (
           <View style={styles.checkedCircle}>
@@ -48,7 +47,6 @@ export const ShoppingCard = ({ item, onToggle, onDelete, onEdit, onLongPress }: 
         )}
       </TouchableOpacity>
 
-      {/* (၂) ပစ္စည်းအမည် နှင့် အရေအတွက်အပိုင်း */}
       <View style={styles.infoArea}>
         <Text 
           style={[
@@ -64,7 +62,6 @@ export const ShoppingCard = ({ item, onToggle, onDelete, onEdit, onLongPress }: 
         </Text>
       </View>
 
-      {/* (၃) ဈေးနှုန်း နှင့် Edit / Delete Icon များအပိုင်း ✅ */}
       <View style={styles.actionArea}>
         <Text 
           style={[
@@ -76,7 +73,6 @@ export const ShoppingCard = ({ item, onToggle, onDelete, onEdit, onLongPress }: 
           {totalPrice.toLocaleString()} Ks
         </Text>
         
-        {/* Icon Group အပိုင်း (Card ရဲ့ Layout မပျက်အောင် အောက်နားလေးမှာ စီပေးထားပါတယ်) */}
         <View style={styles.iconGroup}>
           {!item.isBought && (
             <TouchableOpacity 
@@ -133,7 +129,6 @@ const styles = StyleSheet.create({
   itemTitle: { fontSize: 15, fontWeight: '700' },
   itemSub: { fontSize: 12, marginTop: 2 },
   
-  // ညာဘက်ခြမ်း Layout ပုံစံ 🌟
   actionArea: { 
     alignItems: 'flex-end', 
     justifyContent: 'center',
@@ -142,7 +137,7 @@ const styles = StyleSheet.create({
   priceText: { 
     fontSize: 14, 
     fontWeight: '800',
-    marginBottom: 6 // Icon တွေနဲ့ မကပ်အောင် ခြားထားတာပါ
+    marginBottom: 6 
   },
   iconGroup: { 
     flexDirection: 'row', 
@@ -150,6 +145,6 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   iconTouch: {
-    padding: 2, // နှိပ်ရလွယ်အောင် Touch Area လေး ပေးထားတာပါ
+    padding: 2, 
   }
 });

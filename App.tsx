@@ -12,11 +12,6 @@ import { Platform } from 'react-native';
 function App() {
   const { init, isLoading } = useAuthStore();
 
-  useEffect(() => {
-    init(); // app ဖွင့်တာနဲ့ AsyncStorage ကို အရင်စစ်မယ်
-  }, []);
-
-  // Notification ဘယ်လိုပေါ်မလဲဆိုတာ သတ်မှတ်ချက်
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -34,7 +29,6 @@ async function registerForPushNotificationsAsync() {
       finalStatus = status;
     }
     if (finalStatus !== 'granted') {
-      alert('Failed to get push token for push notification!');
       return;
     }
   } else {
@@ -52,7 +46,6 @@ async function registerForPushNotificationsAsync() {
 }
     useEffect(() => {
     init();
-    // ဒါလေး ထည့်ပေးမှ Permission တောင်းမှာပါ
     registerForPushNotificationsAsync(); 
   }, []);
 
@@ -67,4 +60,3 @@ async function registerForPushNotificationsAsync() {
   return <AppNavigator />;
 }
 export default App;
-//export default registerRootComponent(App);

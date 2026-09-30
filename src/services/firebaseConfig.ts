@@ -1,23 +1,31 @@
 import app from '@react-native-firebase/app';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
+import {
+  FIREBASE_API_KEY,
+  FIREBASE_AUTH_DOMAIN,
+  FIREBASE_PROJECT_ID,
+  FIREBASE_STORAGE_BUCKET,
+  FIREBASE_MESSAGING_SENDER_ID,
+  FIREBASE_APP_ID,
+  FIREBASE_MEASUREMENT_ID,
+  FIREBASE_DATABASE_URL,
+} from '@env';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAXjupaMMC2jRAPqrv2PoAkFonjJ39Tt0w",
-  authDomain: "ngwenoteapp.firebaseapp.com",
-  projectId: "ngwenoteapp",
-  storageBucket: "ngwenoteapp.firebasestorage.app",
-  messagingSenderId: "925381789702",
-  appId: "1:925381789702:web:993f0f5b3be586e9f49b87",
-  measurementId: "G-4B8YH6LBVJ",
-  databaseURL: "https://ngwenoteapp-default-rtdb.firebaseio.com"
+  apiKey: FIREBASE_API_KEY,
+  authDomain: FIREBASE_AUTH_DOMAIN,
+  projectId: FIREBASE_PROJECT_ID,
+  storageBucket: FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: FIREBASE_MESSAGING_SENDER_ID,
+  appId: FIREBASE_APP_ID,
+  measurementId: FIREBASE_MEASUREMENT_ID,
+  databaseURL: FIREBASE_DATABASE_URL,
 };
 
-// App ကို တစ်ကြိမ်ပဲ Initialize လုပ်ဖို့ စစ်ပါတယ်
 if (!app.apps.length) {
   app.initializeApp(firebaseConfig);
 }
 
-// Export ထုတ်တဲ့အခါ နာမည်ရှင်းရှင်းလေးပဲ ပေးလိုက်ပါမယ်
 export const db = firestore();
 export const firebaseAuth = auth();

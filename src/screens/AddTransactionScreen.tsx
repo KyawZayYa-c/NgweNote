@@ -1,16 +1,35 @@
-//src/screens/AddTransactionScreen.tsx
 import React, { useState, useEffect } from 'react';
-import { 
-  View, Text, StyleSheet, TextInput, TouchableOpacity, 
-  ScrollView, Platform, KeyboardAvoidingView, StatusBar, Alert 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  Platform,
+  KeyboardAvoidingView,
+  StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useThemeStore } from '../context/useThemeStore';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, Save, Tag, Calendar, Edit3, Plus, X } from 'lucide-react-native';
+import {
+  ChevronLeft,
+  Save,
+  Tag,
+  Calendar,
+  Edit3,
+  Plus,
+} from 'lucide-react-native';
 import { CategoryModal } from '../components/CategoryModal';
 import { useExpenseStore } from '../context/useExpenseStore';
+import {
+  AlertModal,
+  TypeSwitcher,
+  BatchPreview,
+  styles,
+} from '../components/AddTransaction';
 
 export const AddTransactionScreen = ({ navigation, route }: any) => {
   const { t } = useTranslation();
@@ -30,6 +49,10 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [batchItems, setBatchItems] = useState<any[]>([]);
 
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+
   const isBatching = batchItems.length > 0;
 
   const resetForm = () => {
@@ -38,43 +61,54 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
     setNote('');
   };
 
+  const showAlert = (title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
+
   useEffect(() => {
     if (route.params?.editData) {
       const data = route.params.editData;
       setAmount(data.amount?.toString() || '');
       setNote(data.title || '');
-      if(data.type) setType(data.type);
-      
+      if (data.type) setType(data.type);
+
       if (data.transactionDate) {
         setDate(new Date(data.transactionDate));
         setSelectedCat(data.category ? { name: data.category } : null);
       } else {
         setDate(new Date());
-        setSelectedCat({ name: 'Shopping' }); 
+        setSelectedCat({ name: 'Shopping' });
       }
     }
   }, [route.params?.editData]);
 
-  // Balance Calculation
-  const totalIncome = transactions.filter(tr => tr.type === 'income').reduce((sum, tr) => sum + tr.amount, 0);
-  const totalExpense = transactions.filter(tr => tr.type === 'expense').reduce((sum, tr) => sum + tr.amount, 0);
+  const totalIncome = transactions
+    .filter((tr) => tr.type === 'income')
+    .reduce((sum, tr) => sum + tr.amount, 0);
+  const totalExpense = transactions
+    .filter((tr) => tr.type === 'expense')
+    .reduce((sum, tr) => sum + tr.amount, 0);
   const baseBalance = totalIncome - totalExpense;
-  const batchTotalExpense = batchItems.filter(i => i.type === 'expense').reduce((sum, i) => sum + i.amount, 0);
-  const currentBalance = (isEditMode && editData.type === 'expense' ? baseBalance + editData.amount : baseBalance) - batchTotalExpense;
+  const batchTotalExpense = batchItems
+    .filter((i) => i.type === 'expense')
+    .reduce((sum, i) => sum + i.amount, 0);
+  const currentBalance =
+    (isEditMode && editData.type === 'expense'
+      ? baseBalance + editData.amount
+      : baseBalance) - batchTotalExpense;
 
   const numAmount = parseFloat(amount) || 0;
-
-  // ✅ ငွေမလုံလောက်ခြင်း ရှိ/မရှိ စစ်ဆေးခြင်း
   const isInsufficientBalance = type === 'expense' && numAmount > currentBalance;
 
-  // ✅ ဖြည့်စွက်ချက် စစ်ဆေးခြင်း
   const validateInputs = () => {
     if (!amount || numAmount <= 0) {
-      Alert.alert(t('warning'), t('enterAmount'));
+      showAlert(t('warning'), t('enterAmount'));
       return false;
     }
     if (type === 'expense' && !selectedCat) {
-      Alert.alert(t('warning'), t('selectCategory'));
+      showAlert(t('warning'), t('selectCategory'));
       return false;
     }
     return true;
@@ -92,6 +126,10 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
     };
     setBatchItems([...batchItems, newItem]);
     resetForm();
+  };
+
+  const handleRemoveFromBatch = (id: string) => {
+    setBatchItems(batchItems.filter((item) => item.id !== id));
   };
 
   const handleSaveAll = async () => {
@@ -120,46 +158,68 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
       resetForm();
       navigation.goBack();
     } catch (error) {
-      Alert.alert("Error", t('saveError'));
+      showAlert(t('error') || 'Error', t('saveError') || 'Failed to save');
     }
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.container, { backgroundColor: themeColors.background }]}>
-      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} backgroundColor="transparent" translucent />
-      
-      {/* ၄ထောင့် ညီညီလေးနဲ့ Clean ဖြစ်အောင် border radius ဖြုတ်လိုက်ပါတယ် */}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={[styles.container, { backgroundColor: themeColors.background }]}
+    >
+      <StatusBar
+        barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
+        backgroundColor="transparent"
+        translucent
+      />
+
       <LinearGradient colors={themeColors.primaryGradient} style={styles.header}>
         <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backBtn}
+            activeOpacity={0.7}
+          >
             <ChevronLeft color="#fff" size={28} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{isEditMode ? "ပြင်ဆင်ရန်" : t('createRecord')}</Text>
+          <Text style={styles.headerTitle}>
+            {isEditMode ? t('edit') || 'Edit' : t('createRecord')}
+          </Text>
           <View style={{ width: 28 }} />
         </View>
       </LinearGradient>
 
-      <ScrollView contentContainerStyle={styles.formContainer} keyboardShouldPersistTaps="handled">
-        {/* Type Switcher */}
-        <View style={styles.switcherContainer}>
-          <View style={[styles.switcherBackground, { backgroundColor: theme === 'dark' ? '#2A2D37' : '#D1D5DB' }]}>
-            <TouchableOpacity onPress={() => setType('expense')} disabled={isEditMode || isBatching} style={[styles.switchBtn, type === 'expense' && styles.activeExpense]}>
-              <Text style={[styles.switchText, type === 'expense' ? { color: '#fff' } : { color: '#4B5563' }]}>{t('expense')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setType('income')} disabled={isEditMode || isBatching} style={[styles.switchBtn, type === 'income' && styles.activeIncome]}>
-              <Text style={[styles.switchText, type === 'income' ? { color: '#fff' } : { color: '#4B5563' }]}>{t('income')}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+      <ScrollView
+        contentContainerStyle={styles.formContainer}
+        keyboardShouldPersistTaps="handled"
+      >
+        <TypeSwitcher
+          type={type}
+          onChange={setType}
+          disabled={isEditMode || isBatching}
+          theme={theme}
+          expenseText={t('expense')}
+          incomeText={t('income')}
+        />
 
-        {/* Amount Input */}
         <View style={styles.inputWrapper}>
-          <Text style={[styles.label, { color: themeColors.text.secondary }]}>{t('amount')}</Text>
-          <View style={[styles.inputBox, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
-            <Text style={[styles.currencySymbol, { color: themeColors.text.primary }]}>Ks</Text>
-            <TextInput 
-              style={[styles.amountInput, { color: themeColors.text.primary }]} 
-              value={amount} placeholder="0" keyboardType="decimal-pad"
+          <Text style={[styles.label, { color: themeColors.text.secondary }]}>
+            {t('amount')}
+          </Text>
+          <View
+            style={[
+              styles.inputBox,
+              { backgroundColor: themeColors.surface, borderColor: themeColors.border },
+            ]}
+          >
+            <Text style={[styles.currencySymbol, { color: themeColors.text.primary }]}>
+              Ks
+            </Text>
+            <TextInput
+              style={[styles.amountInput, { color: themeColors.text.primary }]}
+              value={amount}
+              placeholder="0"
+              keyboardType="decimal-pad"
               placeholderTextColor={themeColors.text.secondary}
               onChangeText={(text) => setAmount(text.replace(/[^0-9.]/g, ''))}
             />
@@ -167,184 +227,150 @@ export const AddTransactionScreen = ({ navigation, route }: any) => {
         </View>
 
         <View style={styles.row}>
-          {/* Category Selector */}
-          <TouchableOpacity 
-            style={[styles.iconBox, { backgroundColor: themeColors.surface, borderColor: themeColors.border }, type === 'income' && { opacity: 0.6 }]} 
-            onPress={() => type === 'expense' && setCatModal(true)} 
+          <TouchableOpacity
+            style={[
+              styles.iconBox,
+              { backgroundColor: themeColors.surface, borderColor: themeColors.border },
+              type === 'income' && { opacity: 0.6 },
+            ]}
+            onPress={() => type === 'expense' && setCatModal(true)}
             disabled={type === 'income'}
             activeOpacity={0.7}
           >
             <Tag size={18} color={themeColors.primary} />
-            <Text style={[styles.boxText, { color: themeColors.text.primary }]} numberOfLines={1}>
-              {type === 'income' ? t('income') : (selectedCat ? selectedCat.name : t('category'))}
+            <Text
+              style={[styles.boxText, { color: themeColors.text.primary }]}
+              numberOfLines={1}
+            >
+              {type === 'income'
+                ? t('income')
+                : selectedCat
+                ? selectedCat.name
+                : t('category')}
             </Text>
           </TouchableOpacity>
 
-          {/* Date Selector */}
-          <TouchableOpacity 
-            style={[styles.iconBox, { backgroundColor: themeColors.surface, borderColor: themeColors.border }, isBatching && { opacity: 0.6 }]} 
-            onPress={() => !isBatching && setShowDatePicker(true)} 
+          <TouchableOpacity
+            style={[
+              styles.iconBox,
+              { backgroundColor: themeColors.surface, borderColor: themeColors.border },
+              isBatching && { opacity: 0.6 },
+            ]}
+            onPress={() => !isBatching && setShowDatePicker(true)}
             disabled={isBatching}
             activeOpacity={0.7}
           >
             <Calendar size={18} color={themeColors.primary} />
             <Text style={[styles.boxText, { color: themeColors.text.primary }]}>
-              {date.toDateString() === new Date().toDateString() ? t('today') : date.toLocaleDateString()}
+              {date.toDateString() === new Date().toDateString()
+                ? t('today')
+                : date.toLocaleDateString()}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {showDatePicker && <DateTimePicker value={date} mode="date" display="default" onChange={(e, d) => { setShowDatePicker(false); if(d) setDate(d); }} maximumDate={new Date()} />}
+        {showDatePicker && (
+          <DateTimePicker
+            value={date}
+            mode="date"
+            display="default"
+            onChange={(e, d) => {
+              setShowDatePicker(false);
+              if (d) setDate(d);
+            }}
+            maximumDate={new Date()}
+          />
+        )}
 
-        {/* Note Input */}
         <View style={styles.inputWrapper}>
-          <Text style={[styles.label, { color: themeColors.text.secondary }]}>{t('note')}</Text>
-          <View style={[styles.noteBox, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
+          <Text style={[styles.label, { color: themeColors.text.secondary }]}>
+            {t('note')}
+          </Text>
+          <View
+            style={[
+              styles.noteBox,
+              { backgroundColor: themeColors.surface, borderColor: themeColors.border },
+            ]}
+          >
             <Edit3 size={18} color={themeColors.text.secondary} />
-            <TextInput style={[styles.noteInput, { color: themeColors.text.primary }]} multiline value={note} onChangeText={setNote} placeholder={t('writeNote')} placeholderTextColor={themeColors.text.secondary} />
+            <TextInput
+              style={[styles.noteInput, { color: themeColors.text.primary }]}
+              multiline
+              value={note}
+              onChangeText={setNote}
+              placeholder={t('writeNote')}
+              placeholderTextColor={themeColors.text.secondary}
+            />
           </View>
         </View>
 
-        {/* Add Another Button */}
         {!isEditMode && (
-          <TouchableOpacity 
-            onPress={handleAddToBatch} 
+          <TouchableOpacity
+            onPress={handleAddToBatch}
             disabled={isInsufficientBalance}
-            style={[styles.addToListBtn, { borderColor: themeColors.primary, opacity: isInsufficientBalance ? 0.7 : 1 }]}
+            style={[
+              styles.addToListBtn,
+              { borderColor: themeColors.primary, opacity: isInsufficientBalance ? 0.7 : 1 },
+            ]}
             activeOpacity={0.7}
           >
             <Plus size={20} color={themeColors.primary} />
-            <Text style={[styles.addToListText, { color: themeColors.primary }]}>{t('addAnother')}</Text>
+            <Text style={[styles.addToListText, { color: themeColors.primary }]}>
+              {t('addAnother')}
+            </Text>
           </TouchableOpacity>
         )}
 
-        {/* Preview Items List UI */}
-        {isBatching && (
-          <View style={{ marginBottom: 15 }}>
-            <Text style={[styles.label, { color: themeColors.text.secondary, marginBottom: 8 }]}>
-              PREVIEW ({batchItems.length})
-            </Text>
-            
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 10, paddingBottom: 5 }}
-            >
-              {batchItems.map((item) => (
-                <View 
-                  key={item.id} 
-                  style={{
-                    width: 130, 
-                    padding: 10,
-                    borderRadius: 14,
-                    backgroundColor: themeColors.surface,
-                    borderWidth: 1,
-                    borderColor: themeColors.border,
-                    position: 'relative'
-                  }}
-                >
-                  <TouchableOpacity 
-                    onPress={() => setBatchItems(batchItems.filter(b => b.id !== item.id))}
-                    style={{ 
-                      position: 'absolute', 
-                      top: 6, 
-                      right: 6, 
-                      padding: 2,
-                      zIndex: 10
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <X size={14} color="#FF6B6B" />
-                  </TouchableOpacity>
-
-                  <Text 
-                    numberOfLines={1} 
-                    style={{ 
-                      fontSize: 14, 
-                      fontWeight: '800', 
-                      color: item.type === 'income' ? '#10B981' : '#EF4444',
-                      marginTop: 8,
-                      marginBottom: 2
-                    }}
-                  >
-                    {item.amount.toLocaleString()}
-                  </Text>
-
-                  <Text 
-                    numberOfLines={1} 
-                    style={{ 
-                      fontSize: 12, 
-                      color: themeColors.text.secondary,
-                      fontWeight: '600'
-                    }}
-                  >
-                    {item.title}
-                  </Text>
-                </View>
-              ))}
-            </ScrollView>
-          </View>
+        {!isEditMode && isBatching && (
+          <BatchPreview
+            items={batchItems}
+            onRemove={handleRemoveFromBatch}
+            themeColors={themeColors}
+            title={t('previewTitle') || 'ထည့်သွင်းရန် စာရင်းများ'}
+          />
         )}
 
-        {/* ပြင်ဆင်လိုက်သည့် Save Button UI */}
-        <TouchableOpacity 
-          onPress={handleSaveAll} 
+        <TouchableOpacity
+          onPress={handleSaveAll}
           disabled={isInsufficientBalance}
           activeOpacity={0.8}
           style={[
-            styles.saveBtn, 
+            styles.saveBtn,
             theme === 'dark' && { borderWidth: 1, borderColor: 'rgba(0, 209, 255, 0.3)' },
-            isInsufficientBalance && { opacity: 0.5 }
+            isInsufficientBalance && { opacity: 0.5 },
           ]}
         >
-          <LinearGradient 
-            colors={themeColors.primaryBtn || ['#6A5AE0', '#010102']} 
+          <LinearGradient
+            colors={themeColors.primaryBtn || ['#6A5AE0', '#010102']}
             style={[StyleSheet.absoluteFillObject, { borderRadius: 20 }]}
           />
-
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, zIndex: 1 }}>
             <Save color="#fff" size={20} />
             <Text style={styles.saveText}>
-              {isBatching ? `${t('saveAll')} (${batchItems.length + (amount ? 1 : 0)})` : (isEditMode ? t('update') : t('save'))}
+              {isBatching
+                ? `${t('saveAll')} (${batchItems.length + (amount ? 1 : 0)})`
+                : isEditMode
+                ? t('update')
+                : t('save')}
             </Text>
           </View>
         </TouchableOpacity>
       </ScrollView>
 
-      <CategoryModal visible={catModal} onClose={() => setCatModal(false)} onSelect={(cat: any) => setSelectedCat(cat)} />
+      <CategoryModal
+        visible={catModal}
+        onClose={() => setCatModal(false)}
+        onSelect={(cat: any) => setSelectedCat(cat)}
+      />
+
+      <AlertModal
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
+        themeColors={themeColors}
+        okText={t('ok') || 'OK'}
+      />
     </KeyboardAvoidingView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { 
-    height: Platform.OS === 'ios' ? 110 : 90, 
-    justifyContent: 'flex-end', 
-    paddingBottom: 15,
-  },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20 },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  backBtn: { padding: 4 },
-  formContainer: { paddingHorizontal: 25, paddingTop: 25, paddingBottom: 60 },
-  switcherContainer: { marginBottom: 10, alignItems: 'center' },
-  switcherBackground: { flexDirection: 'row', padding: 4, borderRadius: 22, width: '100%' },
-  switchBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 18 },
-  activeExpense: { backgroundColor: '#EF4444' },
-  activeIncome: { backgroundColor: '#10B981' },
-  switchText: { fontSize: 14, fontWeight: '700' },
-  inputWrapper: { marginBottom: 18 },
-  label: { fontSize: 11, marginBottom: 6, marginTop: 4, fontWeight: '700', textTransform: 'uppercase' },
-  inputBox: { flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 20, borderWidth: 1.5 },
-  currencySymbol: { fontSize: 20, marginRight: 10, fontWeight: '700' },
-  amountInput: { flex: 1, fontSize: 24, fontWeight: '700', paddingVertical: 0 },
-  row: { flexDirection: 'row', gap: 12, marginBottom: 15 },
-  iconBox: { flex: 1, flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 20, gap: 10, borderWidth: 1.5 },
-  boxText: { fontSize: 14, fontWeight: '600' },
-  noteBox: { flexDirection: 'row', padding: 15, borderRadius: 20, borderWidth: 1.5, minHeight: 80 },
-  noteInput: { flex: 1, marginLeft: 10, fontSize: 15, textAlignVertical: 'top', paddingVertical: 0 },
-  addToListBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 12, borderRadius: 15, borderStyle: 'dashed', borderWidth: 1.5, marginBottom: 20, gap: 8 },
-  addToListText: { fontWeight: '700', fontSize: 14 },
-  saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 60, borderRadius: 20, gap: 12, elevation: 4, overflow: 'hidden' },
-  saveText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-});

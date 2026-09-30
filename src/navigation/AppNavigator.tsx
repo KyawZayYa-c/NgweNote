@@ -17,7 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { AnalyticsScreen } from '../screens/AnalyticsScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
-import { AddToBuyScreen } from '../screens/AddToBuyScreen'; // ဒီကောင်လေး အသစ်ထည့်ရမယ်
+import { AddToBuyScreen } from '../screens/AddToBuyScreen'; 
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -32,7 +32,7 @@ const CustomTabBarButton = () => {
     <View style={styles.fabContainer}>
       <TouchableOpacity 
         activeOpacity={0.8} 
-        onPress={() => navigation.navigate('AddTransaction')} // တိုက်ရိုက်သွားရန်
+        onPress={() => navigation.navigate('AddTransaction')} 
       >
         <LinearGradient colors={gradientColors} style={[styles.fab, { borderColor: themeColors.background }]}>
           <Plus color="#FFFFFF" size={32} strokeWidth={2.5} />
@@ -69,7 +69,6 @@ function TabNavigator() {
       <Tab.Screen name="HomeTab" component={HomeScreen} options={{ tabBarLabel: t('home') }} />
       <Tab.Screen name="Analytics" component={AnalyticsScreen} options={{ tabBarLabel: t('analytics') }} />
       
-      {/* အလယ်ခလုတ် - နာမည်ကို Tab ထဲမှာ ပေါ်မနေအောင် အလွတ်ထားထားပါတယ် */}
       <Tab.Screen 
         name="AddTransactionTab" 
         component={AddTransactionScreen} 
@@ -88,13 +87,11 @@ function TabNavigator() {
 
 
 export const AppNavigator = () => {
-  // ✅ user ကိုပါ ဆွဲထုတ်လိုက်ပါ
   const { isGuest, user } = useAuthStore(); 
 
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {/* ✅ Logic ကို ပြင်လိုက်ပါ: Guest လည်းမဟုတ်၊ User လည်း မရှိရင် Login ပြမယ် */}
         {!isGuest && !user ? (
           <Stack.Screen name="Login" component={LoginScreen} />
         ) : (

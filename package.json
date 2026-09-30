@@ -23,6 +23,7 @@
     "date-fns": "^3.6.0",
     "expo": "~51.0.0",
     "expo-auth-session": "~5.5.2",
+    "expo-av": "~14.0.7",
     "expo-blur": "~13.0.3",
     "expo-build-properties": "~0.12.5",
     "expo-crypto": "~13.0.2",
@@ -31,6 +32,7 @@
     "expo-linear-gradient": "~13.0.2",
     "expo-media-library": "~16.0.5",
     "expo-notifications": "~0.28.19",
+    "expo-speech": "~12.0.2",
     "expo-status-bar": "~1.12.1",
     "expo-web-browser": "~13.0.3",
     "i18next": "^23.16.8",
@@ -51,6 +53,7 @@
     "@babel/core": "^7.20.0",
     "@types/react": "~18.2.45",
     "babel-preset-expo": "~11.0.0",
+    "react-native-dotenv": "^5.0.0",
     "typescript": "~5.3.3"
   },
   "private": true

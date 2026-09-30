@@ -1,0 +1,93 @@
+import { StyleSheet, Platform } from 'react-native';
+
+export const styles = StyleSheet.create({
+  navBar: {
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 45,
+    paddingBottom: 20,
+  },
+  navContent: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  navTitle: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
+
+  filterCard: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 10,
+    padding: 12,
+    borderRadius: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  filterBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginRight: 8,
+  },
+  activeFilterBtn: { elevation: 3 },
+  filterText: { fontSize: 13, fontWeight: 'bold' },
+
+  kpiRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 10,
+    marginBottom: 25,
+    marginTop: 10,
+  },
+  kpiCard: {
+    flex: 1,
+    padding: 15,
+    borderRadius: 24,
+    borderWidth: 0,
+    elevation: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+  },
+  kpiLabel: { fontSize: 12, marginTop: 10, fontWeight: '500' },
+  kpiValue: { fontSize: 16, fontWeight: 'bold', marginTop: 5 },
+
+  sectionCard: {
+    marginHorizontal: 20,
+    padding: 22,
+    borderRadius: 30,
+    marginBottom: 25,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 15,
+    shadowOffset: { width: 0, height: 6 },
+    borderWidth: 1,
+    borderColor: 'rgba(150, 150, 150, 0.05)',
+  },
+  sectionTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 20 },
+
+  listItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
+  listIndex: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  itemTitle: { fontSize: 15, fontWeight: '600' },
+  itemDate: { fontSize: 12, color: '#999', marginTop: 2 },
+  itemAmount: { fontSize: 15, fontWeight: 'bold', color: '#FF6B6B' },
+
+  exportBtn: {
+    marginHorizontal: 20,
+    marginTop: 10,
+    padding: 20,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+});

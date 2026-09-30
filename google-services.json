@@ -12,7 +12,36 @@
           "package_name": "com.ngwenote.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "925381789702-cpk46gebk6ddh80pp3f6la24eaaa9fc5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ngwenote.app",
+            "certificate_hash": "44a9b867dc27cd3fa5ec222fed1b8b21333b5f49"
+          }
+        },
+        {
+          "client_id": "925381789702-e5ckdquvcqvbhckum5pku19vkht48o6b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ngwenote.app",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "925381789702-v4cridhblt6kpevf7qgq2usv110qfmn3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ngwenote.app",
+            "certificate_hash": "c1a2751902c2eb127172287e907c06838ed01a29"
+          }
+        },
+        {
+          "client_id": "925381789702-dgt9his7phe5kifhd4dsh0sv4ljctqho.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDDeUt8z7irk5fAOBCYE-1Mza7OGrcj0ZU"
@@ -20,7 +49,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "925381789702-6esrfdupgocl54u7oj1a7e5juaaepkr3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
